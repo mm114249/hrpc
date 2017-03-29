@@ -1,11 +1,11 @@
 package com.pairs.arch.rpc.client.proxy;
 
+import com.pairs.arch.rpc.client.HrpcConnect;
 import com.pairs.arch.rpc.client.ResponseWrap;
 import com.pairs.arch.rpc.client.SyncLock;
+import com.pairs.arch.rpc.client.registry.ServerDiscovery;
 import com.pairs.arch.rpc.common.bean.HrpcRequest;
 import com.pairs.arch.rpc.common.bean.HrpcResponse;
-import com.pairs.arch.rpc.client.registry.ServerDiscovery;
-import io.netty.channel.Channel;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
@@ -38,7 +38,7 @@ public class HrpcProxy {
                 request.setParameterTypes(method.getParameterTypes());
                 request.setParameters(args);
 
-                Channel channel=serverDiscovery.discoverServer(request);
+                HrpcConnect channel=serverDiscovery.discoverServer(request);
                 channel.writeAndFlush(request);
 
                 CountDownLatch latch=new CountDownLatch(1);

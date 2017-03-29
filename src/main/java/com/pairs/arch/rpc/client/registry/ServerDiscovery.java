@@ -1,12 +1,12 @@
 package com.pairs.arch.rpc.client.registry;
 
+import com.pairs.arch.rpc.client.HrpcConnect;
 import com.pairs.arch.rpc.client.hanler.HrpcClientHandler;
 import com.pairs.arch.rpc.common.bean.HrpcRequest;
 import com.pairs.arch.rpc.common.bean.HrpcResponse;
 import com.pairs.arch.rpc.common.codec.HrpcDecoder;
 import com.pairs.arch.rpc.common.codec.HrpcEncoder;
 import io.netty.bootstrap.Bootstrap;
-import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelInitializer;
@@ -24,9 +24,15 @@ import org.apache.curator.framework.recipes.cache.TreeCacheListener;
 import org.apache.curator.retry.ExponentialBackoffRetry;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Created by hupeng on 2017/3/27.
@@ -57,21 +63,21 @@ public class ServerDiscovery {
      * 远程地址列表
      * key:ip value:Channel
      */
-    private Map<String, Channel> channelMap = new HashMap<String, Channel>();
+    private Map<String, HrpcConnect> channelMap = new HashMap<String, HrpcConnect>();
 
-    public Channel discoverServer(HrpcRequest hrpcRequest) {
+    public HrpcConnect discoverServer(HrpcRequest hrpcRequest) {
         String className = hrpcRequest.getClassName();
         if (!serverMap.containsKey(className)) {
             boolean hasServer = false;
             try {
                 //本地缓存中没有服务,就去zookeeper上主动发现一次
-                if (client.checkExists().forPath(path + "/" + className)!= null) {
-                    List<String> childrens=client.getChildren().forPath(path + "/" + className);
-                    if(CollectionUtils.isNotEmpty(childrens)){
-                        for(String c:childrens){
-                            String ip=new String(client.getData().forPath(path+"/"+className+"/"+c));
-                            serverRegister(className,ip);
-                            hasServer=true;
+                if (client.checkExists().forPath(path + "/" + className) != null) {
+                    List<String> childrens = client.getChildren().forPath(path + "/" + className);
+                    if (CollectionUtils.isNotEmpty(childrens)) {
+                        for (String c : childrens) {
+                            String ip = new String(client.getData().forPath(path + "/" + className + "/" + c));
+                            serverRegister(className, ip);
+                            hasServer = true;
                         }
                     }
                 }
@@ -79,7 +85,7 @@ public class ServerDiscovery {
                 e.printStackTrace();
             }
 
-            if(!hasServer){
+            if (!hasServer) {
                 throw new RuntimeException("not server provide");
             }
 
@@ -188,16 +194,21 @@ public class ServerDiscovery {
                 });
 
         try {
+
+
+            final CountDownLatch countDownLatch = new CountDownLatch(1);
             ChannelFuture channelFuture = bootstrap.connect().addListener(new ChannelFutureListener() {
                 @Override
                 public void operationComplete(ChannelFuture channelFuture) throws Exception {
                     if (channelFuture.isSuccess()) {
-                        if (!channelMap.containsKey(address)) {
-                            channelMap.put(address, channelFuture.channel());
-                        }
+
+                        HrpcConnect hrpcConnect = new HrpcConnect(address, channelFuture.channel(), new Date().getTime());
+                        channelMap.put(address, hrpcConnect);
+                        countDownLatch.countDown();
                     }
                 }
             }).sync();
+            countDownLatch.await(1, TimeUnit.SECONDS);
             channelFuture.channel().closeFuture();
         } catch (InterruptedException e) {
             e.printStackTrace();
@@ -207,6 +218,7 @@ public class ServerDiscovery {
 
     public static ServerDiscovery getInstance() {
         instance.registerZookeeper();
+        instance.removeIdleConnect();
         return instance;
     }
 
@@ -226,14 +238,33 @@ public class ServerDiscovery {
 
 
         StringBuffer channelStringBuffer = new StringBuffer();
-        for (Map.Entry<String, Channel> entry : channelMap.entrySet()) {
+        for (Map.Entry<String, HrpcConnect> entry : channelMap.entrySet()) {
             channelStringBuffer.append("{");
             channelStringBuffer.append("ip:" + entry.getKey() + "--->");
-            channelStringBuffer.append("channel Id:" + entry.getValue().id().asShortText());
+            channelStringBuffer.append("channel Id:" + entry.getValue().toString());
             channelStringBuffer.append("},");
         }
 
         System.out.println(channelStringBuffer.toString());
+
+    }
+
+    private void removeIdleConnect() {
+
+        Timer timer = new Timer();
+        timer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                Iterator<Map.Entry<String, HrpcConnect>> it = channelMap.entrySet().iterator();
+                while (it.hasNext()){
+                    Map.Entry<String, HrpcConnect> entity=it.next();
+                    if(entity.getValue().isIdle()){
+                        entity.getValue().close();
+                        it.remove();
+                    }
+                }
+            }
+        }, 5000, 2000);
 
     }
 

@@ -11,34 +11,33 @@ import java.util.concurrent.TimeUnit;
  */
 public class SyncLock {
 
-    private static SyncLock instance=new SyncLock();
+    private static SyncLock instance = new SyncLock();
 
     //key:request uuid  value:线程的锁
     //定义一个普通的cache,不需要用到load
-    private  Cache<String, CountDownLatch> cache = CacheBuilder.newBuilder()
-                 .maximumSize(1000).expireAfterAccess(5,TimeUnit.SECONDS)
-                 .build();
+    private Cache<String, CountDownLatch> cache = CacheBuilder.newBuilder()
+            .maximumSize(1000).expireAfterAccess(5, TimeUnit.SECONDS)
+            .build();
 
-    public CountDownLatch get(String uuid){
-       return cache.getIfPresent(uuid);
+    public CountDownLatch get(String uuid) {
+        return cache.getIfPresent(uuid);
     }
 
-    public void put(String uuid,CountDownLatch latch){
-        cache.put(uuid,latch);
+    public void put(String uuid, CountDownLatch latch) {
+        cache.put(uuid, latch);
     }
 
-    private SyncLock(){
+    private SyncLock() {
 
     }
 
-    public static SyncLock getInstance(){
+    public static SyncLock getInstance() {
         return instance;
     }
 
 
     public static void main(String[] args) throws InterruptedException {
-        getInstance().put("aa",new CountDownLatch(1));
-        Thread.sleep(4000);
+        getInstance().put("aa", new CountDownLatch(1));
         System.out.println(getInstance().get("aa"));
     }
 

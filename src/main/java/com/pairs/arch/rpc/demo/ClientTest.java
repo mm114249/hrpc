@@ -3,13 +3,27 @@ package com.pairs.arch.rpc.demo;
 import com.pairs.arch.rpc.client.proxy.HrpcProxy;
 import com.pairs.arch.rpc.client.registry.ServerDiscovery;
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 /**
  * Created by hupeng on 2017/3/28.
  */
 public class ClientTest {
 
-    public static void main(String[] args) {
-        HelloServer helloServer= HrpcProxy.getInstance(ServerDiscovery.getInstance()).getBean(HelloServer.class);
-        System.out.println(helloServer.getName("aaa"));
+    public static void main(String[] args) throws InterruptedException {
+
+        ExecutorService executorService= Executors.newFixedThreadPool(3);
+        final HelloServer helloServer= HrpcProxy.getInstance(ServerDiscovery.getInstance()).getBean(HelloServer.class);
+
+
+        for(int i=0;i<10;i++){
+            executorService.execute(new Runnable() {
+                @Override
+                public void run() {
+                    System.out.println(helloServer.getName("aaa"));
+                }
+            });
+        }
     }
 }
