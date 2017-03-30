@@ -10,5 +10,7 @@ public class ServerTest {
     public static void main(String[] args) {
        // HrpcServerConfig hrpcServerConfig=HrpcServerConfig.getInstance(Lists.newArrayList("com.pairs.arch.rpc.demo"));
         HrpcServerConfig hrpcServerConfig=HrpcServerConfig.getInstance(8082,"localhost:2181",Lists.newArrayList("com.pairs.arch.rpc.demo"));
+        System.out.println(121);
+        HrpcServerConfig hrpcServerConfig1=HrpcServerConfig.getInstance(8083,"localhost:2181",Lists.newArrayList("com.pairs.arch.rpc.demo"));
     }
 }

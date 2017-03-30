@@ -38,14 +38,14 @@ public class HrpcServerConfig {
     private String zkAddress = "127.0.0.1:2181";
     private String rootPath = "/hrpc";
 
-    private static HrpcServerConfig instance=new HrpcServerConfig();
+    private static HrpcServerConfig instance = new HrpcServerConfig();
 
-    private HrpcServerConfig(){
+    private HrpcServerConfig() {
 
     }
 
 
-    private void run(){
+    private void run() {
         serverRegister();
         createBootstrap();
     }
@@ -53,31 +53,29 @@ public class HrpcServerConfig {
     /**
      * 启动netty 服务
      */
-    private void createBootstrap(){
+    private void createBootstrap() {
         EventLoopGroup bossGroup = new NioEventLoopGroup();
         EventLoopGroup workerGroup = new NioEventLoopGroup(4);
-        try {
-            ServerBootstrap bootstrap = new ServerBootstrap();
-            bootstrap.group(bossGroup, workerGroup)
-                    .channel(NioServerSocketChannel.class)
-                    .option(ChannelOption.SO_BACKLOG, 128)
-                    .childOption(ChannelOption.SO_KEEPALIVE, true)
-                    .childHandler(new ChannelInitializer<SocketChannel>() {
-                        @Override
-                        public void initChannel(SocketChannel channel) throws Exception {
-                            channel.pipeline().addLast(new HrpcDecoder(HrpcRequest.class));
-                            channel.pipeline().addLast(new HrpcEncoder(HrpcResponse.class));
-                            channel.pipeline().addLast(new HrpcHandler());
-                        }
-                    });
+        ServerBootstrap bootstrap = new ServerBootstrap();
+        bootstrap.group(bossGroup, workerGroup)
+                .channel(NioServerSocketChannel.class)
+                .option(ChannelOption.SO_BACKLOG, 128)
+                .childOption(ChannelOption.SO_KEEPALIVE, true)
+                .childHandler(new ChannelInitializer<SocketChannel>() {
+                    @Override
+                    public void initChannel(SocketChannel channel) throws Exception {
+                        channel.pipeline().addLast(new HrpcDecoder(HrpcRequest.class));
+                        channel.pipeline().addLast(new HrpcEncoder(HrpcResponse.class));
+                        channel.pipeline().addLast(new HrpcHandler());
+                    }
+                });
 
-            ChannelFuture future = null;
-            try {
-                future = bootstrap.bind(serverPort).sync();
-                future.channel().closeFuture().sync();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+        ChannelFuture future = null;
+        try {
+            future = bootstrap.bind(serverPort).sync();
+            future.channel().closeFuture().sync();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         } finally {
             workerGroup.shutdownGracefully();
             bossGroup.shutdownGracefully();
@@ -100,11 +98,11 @@ public class HrpcServerConfig {
         String address = ip + ":" + serverPort.toString();
         try {
             for (Class<?> entity : classSet) {
-                String interfaceName=entity.getAnnotation(HrpcServer.class).value().getName();
+                String interfaceName = entity.getAnnotation(HrpcServer.class).value().getName();
                 client.create().creatingParentsIfNeeded()
                         .withMode(CreateMode.EPHEMERAL_SEQUENTIAL)
                         .forPath(rootPath + "/" + interfaceName + "/server", address.getBytes());
-                ServerWrap.addServer(interfaceName,entity);
+                ServerWrap.addServer(interfaceName, entity);
             }
 
         } catch (KeeperException.ConnectionLossException lossException) {
@@ -129,20 +127,18 @@ public class HrpcServerConfig {
     }
 
 
-
-    public static HrpcServerConfig getInstance(Integer serverPort,String zkAddress,List<String> packages){
+    public static HrpcServerConfig getInstance(Integer serverPort, String zkAddress, List<String> packages) {
         instance.setServerPort(serverPort);
         instance.setZkAddress(zkAddress);
         getInstance(packages);
         return instance;
     }
 
-    public static HrpcServerConfig getInstance(List<String> packages){
+    public static HrpcServerConfig getInstance(List<String> packages) {
         instance.setServerPackage(packages);
         instance.run();
         return instance;
     }
-
 
 
     private void setServerPackage(List<String> packages) {

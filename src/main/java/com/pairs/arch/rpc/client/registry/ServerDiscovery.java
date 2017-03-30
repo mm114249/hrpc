@@ -1,5 +1,8 @@
 package com.pairs.arch.rpc.client.registry;
 
+import com.alibaba.fastjson.JSONObject;
+import com.google.common.base.Splitter;
+import com.google.common.collect.Iterables;
 import com.pairs.arch.rpc.client.HrpcConnect;
 import com.pairs.arch.rpc.client.hanler.HrpcClientHandler;
 import com.pairs.arch.rpc.common.bean.HrpcRequest;
@@ -27,6 +30,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Timer;
@@ -44,7 +48,7 @@ public class ServerDiscovery {
     private CuratorFramework client;
     private static ServerDiscovery instance = new ServerDiscovery();
     private EventLoopGroup eventLoopGroup = new NioEventLoopGroup(4);
-    private boolean isRun=false;//服务是否启动,服务启动了就不在执行zookeeper注册和空闲链路检查注册了
+    private boolean isRun = false;//服务是否启动,服务启动了就不在执行zookeeper注册和空闲链路检查注册了
 
     private ServerDiscovery() {
         zkAddress = "localhost:2181";
@@ -63,6 +67,8 @@ public class ServerDiscovery {
     /**
      * 远程地址列表
      * key:ip value:Channel
+     * <p>
+     * 维护一个单独的ip列表,是为了方便检查ip时候已经建立channel
      */
     private Map<String, HrpcConnect> channelMap = new HashMap<String, HrpcConnect>();
 
@@ -164,7 +170,6 @@ public class ServerDiscovery {
         if (!serverMap.containsKey(className)) {
             return;
         }
-
         serverMap.get(className).remove(address);
     }
 
@@ -209,43 +214,16 @@ public class ServerDiscovery {
 
 
     public static ServerDiscovery getInstance() {
-        if(!instance.isRun){
-            synchronized (ServerDiscovery.class){
-                if(!instance.isRun){
+        if (!instance.isRun) {
+            synchronized (ServerDiscovery.class) {
+                if (!instance.isRun) {
                     instance.registerZookeeper();
                     instance.removeIdleConnect();
-                    instance.isRun=true;
+                    instance.isRun = true;
                 }
             }
         }
         return instance;
-    }
-
-    public void consoleMessage() {
-        StringBuffer serverBuffer = new StringBuffer();
-        for (Map.Entry<String, List<String>> entry : serverMap.entrySet()) {
-            serverBuffer.append("{");
-            serverBuffer.append(entry.getKey() + ",");
-            serverBuffer.append("ips [");
-            for (String ip : entry.getValue()) {
-                serverBuffer.append(ip + ",");
-            }
-            serverBuffer.append("]");
-            serverBuffer.append("},");
-        }
-        System.out.println(serverBuffer.toString());
-
-
-        StringBuffer channelStringBuffer = new StringBuffer();
-        for (Map.Entry<String, HrpcConnect> entry : channelMap.entrySet()) {
-            channelStringBuffer.append("{");
-            channelStringBuffer.append("ip:" + entry.getKey() + "--->");
-            channelStringBuffer.append("channel Id:" + entry.getValue().toString());
-            channelStringBuffer.append("},");
-        }
-
-        System.out.println(channelStringBuffer.toString());
-
     }
 
     private void removeIdleConnect() {
@@ -255,9 +233,9 @@ public class ServerDiscovery {
             @Override
             public void run() {
                 Iterator<Map.Entry<String, HrpcConnect>> it = channelMap.entrySet().iterator();
-                while (it.hasNext()){
-                    Map.Entry<String, HrpcConnect> entity=it.next();
-                    if(entity.getValue().isIdle()){
+                while (it.hasNext()) {
+                    Map.Entry<String, HrpcConnect> entity = it.next();
+                    if (entity.getValue().isIdle()) {
                         entity.getValue().close();
                         it.remove();
                     }
@@ -269,14 +247,27 @@ public class ServerDiscovery {
     }
 
 
-    public static void main(String[] args) throws InterruptedException {
-        getInstance();
-
-        while (true) {
-            Thread.sleep(4000);
-            getInstance().consoleMessage();
+    public void consoleMessage() {
+        Map<String, List<Map<String, String>>> consoleMap = new LinkedHashMap<>();
+        for (Map.Entry<String, List<String>> entry : serverMap.entrySet()) {
+            List<Map<String, String>> list = new ArrayList<>();
+            for (String ip : entry.getValue()) {
+                Map<String, String> atomMap = new LinkedHashMap<>();
+                if (channelMap.containsKey(ip)) {
+                    atomMap.put(ip, channelMap.get(ip).getChannel().id().asShortText());
+                }else{
+                    atomMap.put(ip, "");
+                }
+                list.add(atomMap);
+            }
+            consoleMap.put(Iterables.getLast(Splitter.on(".").split(entry.getKey())),list);
         }
+        System.out.println(JSONObject.toJSONString(consoleMap));
+    }
 
+
+    public static void main(String[] args) throws InterruptedException {
+        System.out.println(Iterables.getLast(Splitter.on(".").split(null)));
     }
 
 

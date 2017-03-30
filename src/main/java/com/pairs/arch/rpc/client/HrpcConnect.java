@@ -41,6 +41,9 @@ public class HrpcConnect {
         this.channel.close();
     }
 
+    public Channel getChannel() {
+        return channel;
+    }
 
     @Override
     public String toString() {
