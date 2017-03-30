@@ -44,6 +44,7 @@ public class ServerDiscovery {
     private CuratorFramework client;
     private static ServerDiscovery instance = new ServerDiscovery();
     private EventLoopGroup eventLoopGroup = new NioEventLoopGroup(4);
+    private boolean isRun=false;//服务是否启动,服务启动了就不在执行zookeeper注册和空闲链路检查注册了
 
     private ServerDiscovery() {
         zkAddress = "localhost:2181";
@@ -88,16 +89,11 @@ public class ServerDiscovery {
             if (!hasServer) {
                 throw new RuntimeException("not server provide");
             }
-
         }
 
         List<String> addressList = serverMap.get(className);
         int index = (int) (Math.random() * addressList.size());
         String address = addressList.get(index);
-
-        if (!channelMap.containsKey(address)) {
-            serverRegister(className, address);
-        }
 
         return channelMap.get(address);
     }
@@ -192,16 +188,12 @@ public class ServerDiscovery {
                         socketChannel.pipeline().addLast(new HrpcClientHandler());
                     }
                 });
-
         try {
-
-
             final CountDownLatch countDownLatch = new CountDownLatch(1);
             ChannelFuture channelFuture = bootstrap.connect().addListener(new ChannelFutureListener() {
                 @Override
                 public void operationComplete(ChannelFuture channelFuture) throws Exception {
                     if (channelFuture.isSuccess()) {
-
                         HrpcConnect hrpcConnect = new HrpcConnect(address, channelFuture.channel(), new Date().getTime());
                         channelMap.put(address, hrpcConnect);
                         countDownLatch.countDown();
@@ -217,8 +209,15 @@ public class ServerDiscovery {
 
 
     public static ServerDiscovery getInstance() {
-        instance.registerZookeeper();
-        instance.removeIdleConnect();
+        if(!instance.isRun){
+            synchronized (ServerDiscovery.class){
+                if(!instance.isRun){
+                    instance.registerZookeeper();
+                    instance.removeIdleConnect();
+                    instance.isRun=true;
+                }
+            }
+        }
         return instance;
     }
 
@@ -263,6 +262,7 @@ public class ServerDiscovery {
                         it.remove();
                     }
                 }
+                getInstance().consoleMessage();
             }
         }, 5000, 2000);
 
