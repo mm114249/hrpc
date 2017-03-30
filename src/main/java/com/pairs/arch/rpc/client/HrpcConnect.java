@@ -30,7 +30,7 @@ public class HrpcConnect {
      * @return
      */
     public boolean isIdle(){
-        if(new Date().getTime()-lastActive>10*1000){
+        if(new Date().getTime()-lastActive>100*1000){
             return true;
         }else {
             return false;

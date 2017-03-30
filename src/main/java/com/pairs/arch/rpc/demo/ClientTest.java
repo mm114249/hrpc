@@ -25,7 +25,10 @@ public class ClientTest {
 
         HelloServer helloServer= HrpcProxy.getInstance(ServerDiscovery.getInstance()).getBean(HelloServer.class);
         Thread.sleep(2000);
-        helloServer.getName("aaa");
+
+        for(int i=0;i<1;i++){
+            helloServer.getName("aaa");
+        }
 
 
     }

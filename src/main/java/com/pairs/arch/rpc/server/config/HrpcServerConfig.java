@@ -1,21 +1,9 @@
 package com.pairs.arch.rpc.server.config;
 
-import com.pairs.arch.rpc.common.bean.HrpcRequest;
-import com.pairs.arch.rpc.common.bean.HrpcResponse;
-import com.pairs.arch.rpc.common.codec.HrpcDecoder;
-import com.pairs.arch.rpc.common.codec.HrpcEncoder;
 import com.pairs.arch.rpc.server.annotation.HrpcServer;
-import com.pairs.arch.rpc.server.handler.HrpcHandler;
+import com.pairs.arch.rpc.server.helper.BootstrapCreaterHelper;
 import com.pairs.arch.rpc.server.util.ClassScaner;
 import com.pairs.arch.rpc.server.util.ServerWrap;
-import io.netty.bootstrap.ServerBootstrap;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelInitializer;
-import io.netty.channel.ChannelOption;
-import io.netty.channel.EventLoopGroup;
-import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.channel.socket.SocketChannel;
-import io.netty.channel.socket.nio.NioServerSocketChannel;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.ExponentialBackoffRetry;
@@ -27,60 +15,35 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * Created by hupeng on 2017/3/28.
  */
-public class HrpcServerConfig {
+public class HrpcServerConfig  {
 
     private Integer serverPort = 8010;
     private List<String> serverPackage = new ArrayList<String>();
     private String zkAddress = "127.0.0.1:2181";
     private String rootPath = "/hrpc";
+    private ExecutorService executorService= Executors.newFixedThreadPool(1);
 
     private static HrpcServerConfig instance = new HrpcServerConfig();
+
+
 
     private HrpcServerConfig() {
 
     }
 
-
-    private void run() {
+    private void serverRun() {
+        //将服务注册到zookeeper上
         serverRegister();
-        createBootstrap();
+        //启动netty服务
+        executorService.execute(new BootstrapCreaterHelper(instance.serverPort));
     }
 
-    /**
-     * 启动netty 服务
-     */
-    private void createBootstrap() {
-        EventLoopGroup bossGroup = new NioEventLoopGroup();
-        EventLoopGroup workerGroup = new NioEventLoopGroup(4);
-        ServerBootstrap bootstrap = new ServerBootstrap();
-        bootstrap.group(bossGroup, workerGroup)
-                .channel(NioServerSocketChannel.class)
-                .option(ChannelOption.SO_BACKLOG, 128)
-                .childOption(ChannelOption.SO_KEEPALIVE, true)
-                .childHandler(new ChannelInitializer<SocketChannel>() {
-                    @Override
-                    public void initChannel(SocketChannel channel) throws Exception {
-                        channel.pipeline().addLast(new HrpcDecoder(HrpcRequest.class));
-                        channel.pipeline().addLast(new HrpcEncoder(HrpcResponse.class));
-                        channel.pipeline().addLast(new HrpcHandler());
-                    }
-                });
-
-        ChannelFuture future = null;
-        try {
-            future = bootstrap.bind(serverPort).sync();
-            future.channel().closeFuture().sync();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        } finally {
-            workerGroup.shutdownGracefully();
-            bossGroup.shutdownGracefully();
-        }
-    }
 
 
     /**
@@ -136,7 +99,7 @@ public class HrpcServerConfig {
 
     public static HrpcServerConfig getInstance(List<String> packages) {
         instance.setServerPackage(packages);
-        instance.run();
+        instance.serverRun();
         return instance;
     }
 
@@ -153,4 +116,5 @@ public class HrpcServerConfig {
     private void setServerPort(Integer serverPort) {
         this.serverPort = serverPort;
     }
+
 }

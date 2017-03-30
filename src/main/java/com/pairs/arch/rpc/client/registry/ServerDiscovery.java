@@ -75,26 +75,8 @@ public class ServerDiscovery {
     public HrpcConnect discoverServer(HrpcRequest hrpcRequest) {
         String className = hrpcRequest.getClassName();
         if (!serverMap.containsKey(className)) {
-            boolean hasServer = false;
-            try {
-                //本地缓存中没有服务,就去zookeeper上主动发现一次
-                if (client.checkExists().forPath(path + "/" + className) != null) {
-                    List<String> childrens = client.getChildren().forPath(path + "/" + className);
-                    if (CollectionUtils.isNotEmpty(childrens)) {
-                        for (String c : childrens) {
-                            String ip = new String(client.getData().forPath(path + "/" + className + "/" + c));
-                            serverRegister(className, ip);
-                            hasServer = true;
-                        }
-                    }
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-
-            if (!hasServer) {
-                throw new RuntimeException("not server provide");
-            }
+            //主动去发现一次服务
+            discoveryAndCache(className);
         }
 
         List<String> addressList = serverMap.get(className);
@@ -124,7 +106,7 @@ public class ServerDiscovery {
                         if (event.getData().getPath().split("/").length == 4) {
                             String className = event.getData().getPath().split("/")[2];
                             String ip = new String(event.getData().getData());
-                            serverRegister(className, ip);
+                            discoveryAndCache(className, ip);
                         }
                     } else if (TreeCacheEvent.Type.NODE_REMOVED == event.getType()) {
                         if (event.getData().getPath().split("/").length == 4) {
@@ -144,11 +126,35 @@ public class ServerDiscovery {
     }
 
 
-    private void serverRegister(String className, String ip) {
+    private void discoveryAndCache(String className){
+        boolean hasServer = false;
+        try {
+            //本地缓存中没有服务,就去zookeeper上主动发现一次
+            if (client.checkExists().forPath(path + "/" + className) != null) {
+                List<String> childrens = client.getChildren().forPath(path + "/" + className);
+                if (CollectionUtils.isNotEmpty(childrens)) {
+                    for (String c : childrens) {
+                        String ip = new String(client.getData().forPath(path + "/" + className + "/" + c));
+                        discoveryAndCache(className, ip);
+                        hasServer = true;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        if (!hasServer) {
+            throw new RuntimeException("not server provide");
+        }
+    }
+
+
+    private void discoveryAndCache(String className, String ip) {
         if (serverMap.containsKey(className)
                 && serverMap.get(className).contains(ip)
                 && channelMap.containsKey(ip)) {
-            //已经注册了,不需要在创建channel了
+            //已经缓存了channel,不需要在创建channel了
             return;
         }
 
