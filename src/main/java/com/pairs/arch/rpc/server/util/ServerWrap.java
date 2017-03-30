@@ -15,7 +15,6 @@ public class ServerWrap {
 
     private static Map<String, Object> serverMap = new HashMap<String, Object>();
 
-
     public static void addServer(String key, Class<?> obj) {
         //通过 class 反射出一个对象
         Enhancer enhancer = new Enhancer();

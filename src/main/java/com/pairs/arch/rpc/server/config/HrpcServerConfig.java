@@ -7,6 +7,7 @@ import com.pairs.arch.rpc.server.util.ServerWrap;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.ExponentialBackoffRetry;
+import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 
@@ -28,6 +29,7 @@ public class HrpcServerConfig  {
     private String zkAddress = "127.0.0.1:2181";
     private String rootPath = "/hrpc";
     private ExecutorService executorService= Executors.newFixedThreadPool(1);
+    private static Logger logger=Logger.getLogger(HrpcServerConfig.class);
 
     private static HrpcServerConfig instance = new HrpcServerConfig();
 
@@ -55,13 +57,23 @@ public class HrpcServerConfig  {
                 .newClient(zkAddress, 3000, 3000, new ExponentialBackoffRetry(500, 3));
         client.start();
 
+        if(logger.isDebugEnabled()){
+            logger.debug(String.format("---connect zookeeper starts。address is :%s---",zkAddress));
+        }
+
         Set<Class<?>> classSet = ClassScaner.scanerAnnotation(serverPackage);
 
         String ip = getIp();//获得本机IP
         String address = ip + ":" + serverPort.toString();
+
+        if(logger.isDebugEnabled()){
+            logger.debug(String.format("---server register on zookeeper 。address is :%s---",address));
+        }
+
         try {
             for (Class<?> entity : classSet) {
                 String interfaceName = entity.getAnnotation(HrpcServer.class).value().getName();
+
                 client.create().creatingParentsIfNeeded()
                         .withMode(CreateMode.EPHEMERAL_SEQUENTIAL)
                         .forPath(rootPath + "/" + interfaceName + "/server", address.getBytes());
@@ -69,7 +81,7 @@ public class HrpcServerConfig  {
             }
 
         } catch (KeeperException.ConnectionLossException lossException) {
-            System.out.println("not zookeeper server to connect");
+            logger.error("--------not zookeeper server to connect-------");
             System.exit(1);//连接不上zookeeper,项目就结束
         } catch (Exception e) {
             e.printStackTrace();
@@ -79,12 +91,13 @@ public class HrpcServerConfig  {
 
     private String getIp() {
         InetAddress addr = null;
+        String ip="";
         try {
             addr = InetAddress.getLocalHost();
+            ip = addr.getHostAddress();//获得本机IP
         } catch (UnknownHostException e) {
-            e.printStackTrace();
+            logger.error(e);
         }
-        String ip = addr.getHostAddress();//获得本机IP
 
         return ip;
     }

@@ -25,6 +25,7 @@ import org.apache.curator.framework.recipes.cache.TreeCache;
 import org.apache.curator.framework.recipes.cache.TreeCacheEvent;
 import org.apache.curator.framework.recipes.cache.TreeCacheListener;
 import org.apache.curator.retry.ExponentialBackoffRetry;
+import org.apache.log4j.Logger;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -49,6 +50,7 @@ public class ServerDiscovery {
     private static ServerDiscovery instance = new ServerDiscovery();
     private EventLoopGroup eventLoopGroup = new NioEventLoopGroup(4);
     private boolean isRun = false;//服务是否启动,服务启动了就不在执行zookeeper注册和空闲链路检查注册了
+    private Logger logger=Logger.getLogger(ServerDiscovery.class);
 
     private ServerDiscovery() {
         zkAddress = "localhost:2181";
@@ -119,7 +121,7 @@ public class ServerDiscovery {
             });
 
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error(e);
         }
 
 
@@ -141,7 +143,7 @@ public class ServerDiscovery {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error(e);
         }
 
         if (!hasServer) {
@@ -214,7 +216,7 @@ public class ServerDiscovery {
             countDownLatch.await(1, TimeUnit.SECONDS);
             channelFuture.channel().closeFuture();
         } catch (InterruptedException e) {
-            e.printStackTrace();
+            logger.error(e);
         }
     }
 
@@ -268,7 +270,10 @@ public class ServerDiscovery {
             }
             consoleMap.put(Iterables.getLast(Splitter.on(".").split(entry.getKey())),list);
         }
-        System.out.println(JSONObject.toJSONString(consoleMap));
+
+        if(logger.isDebugEnabled()){
+            logger.debug(JSONObject.toJSONString(consoleMap));
+        }
     }
 
 

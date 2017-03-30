@@ -13,12 +13,15 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import org.apache.log4j.Logger;
 
 /**
  * Created by hupeng on 2017/3/30.
  */
 public class BootstrapCreaterHelper implements Runnable {
 
+
+    private Logger logger=Logger.getLogger(BootstrapCreaterHelper.class);
     private Integer serverPort;
 
     public BootstrapCreaterHelper(Integer serverPort) {
@@ -54,9 +57,12 @@ public class BootstrapCreaterHelper implements Runnable {
         ChannelFuture future = null;
         try {
             future = bootstrap.bind(serverPort).sync();
+            if(logger.isDebugEnabled()){
+                logger.debug("server netty start success");
+            }
             future.channel().closeFuture().sync();
         } catch (InterruptedException e) {
-            e.printStackTrace();
+            logger.error(e);
         } finally {
             workerGroup.shutdownGracefully();
             bossGroup.shutdownGracefully();

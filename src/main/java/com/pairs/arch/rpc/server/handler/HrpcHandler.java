@@ -7,6 +7,7 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import net.sf.cglib.reflect.FastClass;
 import net.sf.cglib.reflect.FastMethod;
+import org.apache.log4j.Logger;
 
 import java.lang.reflect.InvocationTargetException;
 
@@ -15,9 +16,10 @@ import java.lang.reflect.InvocationTargetException;
  */
 public class HrpcHandler extends SimpleChannelInboundHandler<HrpcRequest> {
 
+    private Logger logger=Logger.getLogger(HrpcHandler.class);
+
     @Override
     protected void channelRead0(ChannelHandlerContext channelHandlerContext, HrpcRequest hrpcRequest) throws Exception {
-        System.out.println("in server handler");
         HrpcResponse response = new HrpcResponse();
         response.setRequestId(hrpcRequest.getRequestId());
         try {
@@ -31,12 +33,18 @@ public class HrpcHandler extends SimpleChannelInboundHandler<HrpcRequest> {
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        System.out.println("channel close id is --->"+ctx.channel().id().asShortText() );
+        if(logger.isDebugEnabled()){
+            logger.debug("channel close id is --->"+ctx.channel().id().asShortText());
+        }
+
     }
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
-        System.out.println("channel active id is --->"+ctx.channel().id().asShortText() );
+
+        if(logger.isDebugEnabled()){
+            logger.debug("channel active id is --->"+ctx.channel().id().asShortText());
+        }
     }
 
     private Object callTarget(HrpcRequest hrpcRequest) throws InvocationTargetException {
@@ -50,19 +58,7 @@ public class HrpcHandler extends SimpleChannelInboundHandler<HrpcRequest> {
         Class<?>[] parameterTypes = hrpcRequest.getParameterTypes();
         Object[] parameters = hrpcRequest.getParameters();
 
-//        Method method = null;
-//        try {
-//            method = serviceClass.getMethod(methodName, parameterTypes);
-//            method.setAccessible(true);
-//            Object obj=method.invoke(serviceBean, parameters);
-//            return obj;
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//            return null;
-//        }
-
-
-
+        //使用cglig反射 避免发射带来的效率问题
         FastClass serviceFastClass = FastClass.create(serviceClass);
         FastMethod serviceFastMethod = serviceFastClass.getMethod(methodName, parameterTypes);
         return serviceFastMethod.invoke(serviceBean, parameters);
