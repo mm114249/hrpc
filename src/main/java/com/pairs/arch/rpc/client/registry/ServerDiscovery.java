@@ -1,6 +1,7 @@
 package com.pairs.arch.rpc.client.registry;
 
 import com.alibaba.fastjson.JSONObject;
+import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Iterables;
 import com.pairs.arch.rpc.client.HrpcConnect;
@@ -51,6 +52,7 @@ public class ServerDiscovery {
     private EventLoopGroup eventLoopGroup = new NioEventLoopGroup(4);
     private boolean isRun = false;//服务是否启动,服务启动了就不在执行zookeeper注册和空闲链路检查注册了
     private Logger logger=Logger.getLogger(ServerDiscovery.class);
+    private Joiner joiner=Joiner.on("/").skipNulls();
 
     private ServerDiscovery() {
         zkAddress = "localhost:2181";
@@ -132,11 +134,11 @@ public class ServerDiscovery {
         boolean hasServer = false;
         try {
             //本地缓存中没有服务,就去zookeeper上主动发现一次
-            if (client.checkExists().forPath(path + "/" + className) != null) {
-                List<String> childrens = client.getChildren().forPath(path + "/" + className);
+            if (client.checkExists().forPath(joiner.join(path,className)) != null) {
+                List<String> childrens = client.getChildren().forPath(joiner.join(path,className));
                 if (CollectionUtils.isNotEmpty(childrens)) {
                     for (String c : childrens) {
-                        String ip = new String(client.getData().forPath(path + "/" + className + "/" + c));
+                        String ip = new String(client.getData().forPath(joiner.join(path,className,c)));
                         discoveryAndCache(className, ip);
                         hasServer = true;
                     }

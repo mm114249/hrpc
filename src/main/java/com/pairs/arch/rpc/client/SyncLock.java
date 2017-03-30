@@ -35,11 +35,4 @@ public class SyncLock {
         return instance;
     }
 
-
-    public static void main(String[] args) throws InterruptedException {
-        getInstance().put("aa", new CountDownLatch(1));
-        System.out.println(getInstance().get("aa"));
-    }
-
-
 }

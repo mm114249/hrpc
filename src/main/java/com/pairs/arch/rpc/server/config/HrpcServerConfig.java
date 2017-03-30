@@ -1,5 +1,6 @@
 package com.pairs.arch.rpc.server.config;
 
+import com.google.common.base.Joiner;
 import com.pairs.arch.rpc.server.annotation.HrpcServer;
 import com.pairs.arch.rpc.server.helper.BootstrapCreaterHelper;
 import com.pairs.arch.rpc.server.util.ClassScaner;
@@ -57,6 +58,8 @@ public class HrpcServerConfig  {
                 .newClient(zkAddress, 3000, 3000, new ExponentialBackoffRetry(500, 3));
         client.start();
 
+        Joiner joiner=Joiner.on("/").skipNulls();
+
         if(logger.isDebugEnabled()){
             logger.debug(String.format("---connect zookeeper starts。address is :%s---",zkAddress));
         }
@@ -73,10 +76,9 @@ public class HrpcServerConfig  {
         try {
             for (Class<?> entity : classSet) {
                 String interfaceName = entity.getAnnotation(HrpcServer.class).value().getName();
-
                 client.create().creatingParentsIfNeeded()
                         .withMode(CreateMode.EPHEMERAL_SEQUENTIAL)
-                        .forPath(rootPath + "/" + interfaceName + "/server", address.getBytes());
+                        .forPath(joiner.join(rootPath,interfaceName,"server"), address.getBytes());
                 ServerWrap.addServer(interfaceName, entity);
             }
 
