@@ -5,4 +5,6 @@ package com.pairs.arch.rpc.demo;
  */
 public interface HelloServer {
     public String getName(String name);
+
+    public SchoolMode descSchool(SchoolMode schoolMode);
 }
