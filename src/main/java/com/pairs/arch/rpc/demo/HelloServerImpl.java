@@ -9,7 +9,6 @@ import com.pairs.arch.rpc.server.annotation.HrpcServer;
 public class HelloServerImpl implements HelloServer {
     @Override
     public String getName(String name) {
-        System.out.println(121212+name);
         return name+"call success";
     }
 

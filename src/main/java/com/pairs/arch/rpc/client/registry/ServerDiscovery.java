@@ -54,6 +54,8 @@ public class ServerDiscovery {
     private Logger logger=Logger.getLogger(ServerDiscovery.class);
     private Joiner joiner=Joiner.on("/").skipNulls();
 
+    private Bootstrap bootstrap = new Bootstrap();
+
     private ServerDiscovery() {
         zkAddress = "localhost:2181";
     }
@@ -86,6 +88,12 @@ public class ServerDiscovery {
         List<String> addressList = serverMap.get(className);
         int index = (int) (Math.random() * addressList.size());
         String address = addressList.get(index);
+
+        HrpcConnect connect=channelMap.get(address);
+
+        if(connect==null||!connect.getChannel().isActive()){
+            createConnect(address);
+        }
 
         return channelMap.get(address);
     }
@@ -190,7 +198,6 @@ public class ServerDiscovery {
      * @param address
      */
     private void createConnect(final String address) {
-        Bootstrap bootstrap = new Bootstrap();
         bootstrap.group(eventLoopGroup)
                 .channel(NioSocketChannel.class)
                 .remoteAddress(address.split(":")[0], Integer.valueOf(address.split(":")[1]))
