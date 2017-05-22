@@ -4,9 +4,15 @@ package com.pairs.arch.rpc.common.bean;
  * Created by hupeng on 2017/3/24.
  */
 public class HrpcResponse {
+
+    private Short type;
     private String requestId;
     private Throwable error;
     private Object result;
+
+    public HrpcResponse(HrpcRequest.RequestType type) {
+        this.type = type.getValue();
+    }
 
     public String getRequestId() {
         return requestId;
@@ -30,5 +36,13 @@ public class HrpcResponse {
 
     public void setError(Throwable error) {
         this.error = error;
+    }
+
+    public Short getType() {
+        return type;
+    }
+
+    public void setType(Short type) {
+        this.type = type;
     }
 }

@@ -21,6 +21,21 @@ public class HrpcDecoder extends ByteToMessageDecoder {
 
     @Override
     protected void decode(ChannelHandlerContext channelHandlerContext, ByteBuf byteBuf, List<Object> list) throws Exception {
+
+        if(byteBuf.readableBytes()<2){
+            return;
+        }
+
+        byte[] magicByte=new byte[2];
+
+        byteBuf.readBytes(magicByte);
+
+        //检查消息开头是否是魔数，用来判断消息的开头
+        String magic=new String(magicByte);
+        if(!"#$".equals(magic)){
+            return;
+        }
+
         if(byteBuf.readableBytes()<4){
             return;
         }

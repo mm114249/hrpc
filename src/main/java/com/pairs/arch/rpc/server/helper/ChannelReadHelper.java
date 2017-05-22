@@ -19,7 +19,7 @@ public class ChannelReadHelper implements Runnable {
 
     @Override
     public void run() {
-        HrpcResponse response = new HrpcResponse();
+        HrpcResponse response = new HrpcResponse(HrpcRequest.RequestType.NORMAL);
         response.setRequestId(hrpcRequest.getRequestId());
         try {
             Object result = callTarget(hrpcRequest);

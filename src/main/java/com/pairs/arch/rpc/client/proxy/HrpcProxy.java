@@ -30,7 +30,7 @@ public class HrpcProxy {
        return (T)Proxy.newProxyInstance(interfaceClazz.getClassLoader(), new Class<?>[]{interfaceClazz}, new InvocationHandler() {
             @Override
             public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-                HrpcRequest request=new HrpcRequest();
+                HrpcRequest request=new HrpcRequest(HrpcRequest.RequestType.NORMAL);
                 String uuid= UUID.randomUUID().toString().replaceAll("-","");
                 request.setRequestId(uuid);
                 request.setMethodName(method.getName());

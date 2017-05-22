@@ -22,6 +22,8 @@ public class HrpcEncoder extends MessageToByteEncoder {
         if(clazz.isInstance(o)){
             byte[] data= SerializationUtil.serialize(o);
             int length=data.length;
+            String magic="#$";
+            byteBuf.writeBytes(magic.getBytes());
             byteBuf.writeInt(length);
             byteBuf.writeBytes(data);
         }

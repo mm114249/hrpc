@@ -49,8 +49,8 @@ public class BootstrapCreaterHelper implements Runnable {
                     @Override
                     public void initChannel(SocketChannel channel) throws Exception {
                         channel.pipeline().addLast(new HrpcDecoder(HrpcRequest.class));
-                        channel.pipeline().addLast(new HrpcEncoder(HrpcResponse.class));
                         channel.pipeline().addLast(new HrpcHandler());
+                        channel.pipeline().addLast(new HrpcEncoder(HrpcResponse.class));
                     }
                 });
 

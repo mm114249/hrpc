@@ -11,6 +11,7 @@ import com.pairs.arch.rpc.common.bean.HrpcResponse;
 import com.pairs.arch.rpc.common.codec.HrpcDecoder;
 import com.pairs.arch.rpc.common.codec.HrpcEncoder;
 import io.netty.bootstrap.Bootstrap;
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelInitializer;
@@ -19,6 +20,7 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.handler.timeout.IdleStateHandler;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
@@ -78,6 +80,8 @@ public class ServerDiscovery {
      */
     private Map<String, HrpcConnect> channelMap = new HashMap<String, HrpcConnect>();
 
+
+
     public HrpcConnect discoverServer(HrpcRequest hrpcRequest) {
         String className = hrpcRequest.getClassName();
         if (!serverMap.containsKey(className)) {
@@ -91,11 +95,43 @@ public class ServerDiscovery {
 
         HrpcConnect connect=channelMap.get(address);
 
+        if(connect!=null&&!connect.getChannel().isActive()){
+            removeServer(connect.getChannel());
+        }
+
+
         if(connect==null||!connect.getChannel().isActive()){
             createConnect(address);
         }
 
         return channelMap.get(address);
+    }
+
+
+    public HrpcConnect getConnect(Channel channel){
+        for (Map.Entry<String, HrpcConnect> entry : channelMap.entrySet()) {
+            if(channel.id().asShortText().equals(entry.getValue().getChannel().id().asShortText())){
+                return entry.getValue();
+            }
+        }
+
+        return null;
+    }
+
+
+    /**
+     * 删除链接
+     * @param channel
+     */
+    public void removeServer(Channel channel){
+        String removeKey="";
+        for (Map.Entry<String, HrpcConnect> entry : channelMap.entrySet()) {
+            if(channel.id().asShortText().equals(entry.getValue().getChannel().id().asShortText())){
+                removeKey=entry.getKey();
+                break;
+            }
+        }
+        channelMap.remove(removeKey);
     }
 
 
@@ -184,6 +220,11 @@ public class ServerDiscovery {
 
     }
 
+    /**
+     * 监听zookeeper节点，当有节点失效的时候，自动去关闭channel，删除掉维护的节点信息
+     * @param className
+     * @param address
+     */
     private void unRegister(String className, String address) {
         if (!serverMap.containsKey(className)) {
             return;
@@ -206,8 +247,9 @@ public class ServerDiscovery {
                     @Override
                     protected void initChannel(SocketChannel socketChannel) throws Exception {
                         socketChannel.pipeline().addLast(new HrpcDecoder(HrpcResponse.class));
-                        socketChannel.pipeline().addLast(new HrpcEncoder(HrpcRequest.class));
+                        socketChannel.pipeline().addLast(new IdleStateHandler(HrpcConnect.IDEL_TIME, HrpcConnect.IDEL_TIME, HrpcConnect.IDEL_TIME));
                         socketChannel.pipeline().addLast(new HrpcClientHandler());
+                        socketChannel.pipeline().addLast(new HrpcEncoder(HrpcRequest.class));
                     }
                 });
         try {
