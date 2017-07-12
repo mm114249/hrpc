@@ -247,7 +247,7 @@ public class ServerDiscovery {
                     @Override
                     protected void initChannel(SocketChannel socketChannel) throws Exception {
                         socketChannel.pipeline().addLast(new HrpcDecoder(HrpcResponse.class));
-                        socketChannel.pipeline().addLast(new IdleStateHandler(HrpcConnect.IDEL_TIME, HrpcConnect.IDEL_TIME, HrpcConnect.IDEL_TIME));
+                      //  socketChannel.pipeline().addLast(new IdleStateHandler(HrpcConnect.IDEL_TIME, HrpcConnect.IDEL_TIME, HrpcConnect.IDEL_TIME));
                         socketChannel.pipeline().addLast(new HrpcClientHandler());
                         socketChannel.pipeline().addLast(new HrpcEncoder(HrpcRequest.class));
                     }

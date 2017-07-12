@@ -1,11 +1,13 @@
 package com.pairs.arch.rpc.demo;
 
 import com.pairs.arch.rpc.server.annotation.HrpcServer;
+import org.springframework.stereotype.Service;
 
 /**
  * Created by hupeng on 2017/3/28.
  */
 @HrpcServer(value = HelloServer.class)
+@Service
 public class HelloServerImpl implements HelloServer {
     @Override
     public String getName(String name) {

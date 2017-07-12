@@ -49,5 +49,13 @@ public class HrpcHandler extends SimpleChannelInboundHandler<HrpcRequest> {
         }
     }
 
+    @Override
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
 
+        if(logger.isInfoEnabled()){
+            logger.info("1111");
+        }
+
+        super.exceptionCaught(ctx, cause);
+    }
 }

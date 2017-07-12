@@ -21,7 +21,6 @@ public class HrpcDecoder extends ByteToMessageDecoder {
 
     @Override
     protected void decode(ChannelHandlerContext channelHandlerContext, ByteBuf byteBuf, List<Object> list) throws Exception {
-
         if(byteBuf.readableBytes()<2){
             return;
         }
