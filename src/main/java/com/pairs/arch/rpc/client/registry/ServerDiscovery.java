@@ -239,6 +239,7 @@ public class ServerDiscovery {
      * @param address
      */
     private void createConnect(final String address) {
+        System.out.println(11111);
         bootstrap.group(eventLoopGroup)
                 .channel(NioSocketChannel.class)
                 .remoteAddress(address.split(":")[0], Integer.valueOf(address.split(":")[1]))

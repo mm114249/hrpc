@@ -33,7 +33,7 @@ public class HrpcStartServer {
 
     public static void main(String[] args) {
         HrpcServerConfig hrpcServerConfig=new HrpcServerConfig();
-        hrpcServerConfig.setZkAddress("192.168.100.13:2181");
+        hrpcServerConfig.setZkAddress("127.0.0.1:2181");
         hrpcServerConfig.setServerPort(7070);
         start(hrpcServerConfig);
     }

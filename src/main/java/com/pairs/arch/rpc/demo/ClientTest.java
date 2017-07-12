@@ -21,7 +21,6 @@ public class ClientTest {
         final HelloServer helloServer= HrpcProxy.getInstance(ServerDiscovery.getInstance()).getBean(HelloServer.class);
 
         for(int i=0;i<1;i++){
-            Thread.sleep(2000);
             executorService.execute(new Runnable() {
                 @Override
                 public void run() {
