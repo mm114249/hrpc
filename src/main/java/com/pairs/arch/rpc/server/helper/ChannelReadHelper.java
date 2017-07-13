@@ -45,6 +45,7 @@ public class ChannelReadHelper implements Runnable {
         String methodName = hrpcRequest.getMethodName();
         Class<?>[] parameterTypes = hrpcRequest.getParameterTypes();
         Object[] parameters = hrpcRequest.getParameters();
+        ReflectionUtils.find
 
         //使用cglig反射 避免发射带来的效率问题
         FastClass serviceFastClass = FastClass.create(serviceClass);
