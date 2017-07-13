@@ -35,6 +35,7 @@ public class HrpcStartServer {
         HrpcServerConfig hrpcServerConfig=new HrpcServerConfig();
         hrpcServerConfig.setZkAddress("192.168.100.13:2181");
         hrpcServerConfig.setServerPort(7070);
+
         start(hrpcServerConfig);
     }
 

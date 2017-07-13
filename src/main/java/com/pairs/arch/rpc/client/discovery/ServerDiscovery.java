@@ -1,10 +1,11 @@
-package com.pairs.arch.rpc.client.registry;
+package com.pairs.arch.rpc.client.discovery;
 
 import com.alibaba.fastjson.JSONObject;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Iterables;
 import com.pairs.arch.rpc.client.HrpcConnect;
+import com.pairs.arch.rpc.client.config.HrpcClientConfig;
 import com.pairs.arch.rpc.client.hanler.HrpcClientHandler;
 import com.pairs.arch.rpc.common.bean.HrpcRequest;
 import com.pairs.arch.rpc.common.bean.HrpcResponse;
@@ -47,42 +48,37 @@ import java.util.concurrent.TimeUnit;
  */
 public class ServerDiscovery {
 
-    private String zkAddress;
-    private String path = "/hrpc";
-    private CuratorFramework client;
-    private static ServerDiscovery instance = new ServerDiscovery();
     private EventLoopGroup eventLoopGroup = new NioEventLoopGroup(4);
     private boolean isRun = false;//服务是否启动,服务启动了就不在执行zookeeper注册和空闲链路检查注册了
     private Logger logger=Logger.getLogger(ServerDiscovery.class);
     private Joiner joiner=Joiner.on("/").skipNulls();
-
-    private Bootstrap bootstrap = new Bootstrap();
-
-    private ServerDiscovery() {
-        zkAddress = "localhost:2181";
-    }
-
-    private ServerDiscovery(String zkAddress) {
-        this.zkAddress = zkAddress;
-    }
-
+    private CuratorFramework client;
+    private HrpcClientConfig hrpcClientConfig;
 
     /**
      * 服务列表
      * key:classname value:ip列表
      */
-    private Map<String, List<String>> serverMap = new HashMap<String, List<String>>();
+    private static Map<String, List<String>> serverMap = new HashMap<String, List<String>>();
     /**
      * 远程地址列表
      * key:ip value:Channel
      * <p>
      * 维护一个单独的ip列表,是为了方便检查ip时候已经建立channel
      */
-    private Map<String, HrpcConnect> channelMap = new HashMap<String, HrpcConnect>();
+    private static Map<String, HrpcConnect> channelMap = new HashMap<String, HrpcConnect>();
 
+    public ServerDiscovery(HrpcClientConfig hrpcClientConfig) {
+        this.hrpcClientConfig = hrpcClientConfig;
+        ServerDiscoveryWarp.setServerDiscovery(this);
+    }
 
-
-    public HrpcConnect discoverServer(HrpcRequest hrpcRequest) {
+    /**
+     * 得到一个rpc服务
+     * @param hrpcRequest
+     * @return
+     */
+    public HrpcConnect getServer(HrpcRequest hrpcRequest) {
         String className = hrpcRequest.getClassName();
         if (!serverMap.containsKey(className)) {
             //主动去发现一次服务
@@ -92,30 +88,43 @@ public class ServerDiscovery {
         List<String> addressList = serverMap.get(className);
         int index = (int) (Math.random() * addressList.size());
         String address = addressList.get(index);
-
-        HrpcConnect connect=channelMap.get(address);
-
-        if(connect!=null&&!connect.getChannel().isActive()){
-            removeServer(connect.getChannel());
+        if(!channelMap.containsKey(address)){
+            createServer(className,address);
         }
-
-
-        if(connect==null||!connect.getChannel().isActive()){
-            createConnect(address);
-        }
-
         return channelMap.get(address);
     }
 
 
-    public HrpcConnect getConnect(Channel channel){
+    public static HrpcConnect getConnect(Channel channel){
         for (Map.Entry<String, HrpcConnect> entry : channelMap.entrySet()) {
             if(channel.id().asShortText().equals(entry.getValue().getChannel().id().asShortText())){
                 return entry.getValue();
             }
         }
-
         return null;
+    }
+
+    /**
+     * 断线重连的时候,需要先删除当前链接
+     * @param channel
+     */
+    public static void removeConnect(Channel channel){
+        String removeKey="";
+        for (Map.Entry<String, HrpcConnect> entry : channelMap.entrySet()) {
+            if(channel.id().asShortText().equals(entry.getValue().getChannel().id().asShortText())){
+                removeKey=entry.getKey();
+                break;
+            }
+        }
+        channelMap.remove(removeKey);
+    }
+
+    /**
+     * 添加一个链路
+     * @param hrpcConnect
+     */
+    public static void addConnect(HrpcConnect hrpcConnect){
+        channelMap.put(hrpcConnect.getAddress(),hrpcConnect);
     }
 
 
@@ -134,62 +143,26 @@ public class ServerDiscovery {
         channelMap.remove(removeKey);
     }
 
-
-    private void registerZookeeper() {
-        client = CuratorFrameworkFactory.newClient(zkAddress, 5000, 5000, new ExponentialBackoffRetry(1000, 3));
-        client.start();
-
-        TreeCache treeCache = null;//递归的监听根节点下的子节点,包括孙子节点
-        try {
-            if (client.checkExists().forPath(path) == null) {
-                client.create().forPath(path);
-            }
-            treeCache = new TreeCache(client, path);
-            treeCache.start();
-
-            treeCache.getListenable().addListener(new TreeCacheListener() {
-                @Override
-                public void childEvent(CuratorFramework client, TreeCacheEvent event) throws Exception {
-                    if (TreeCacheEvent.Type.NODE_ADDED == event.getType()) {
-                        if (event.getData().getPath().split("/").length == 4) {
-                            String className = event.getData().getPath().split("/")[2];
-                            String ip = new String(event.getData().getData());
-                            discoveryAndCache(className, ip);
-                        }
-                    } else if (TreeCacheEvent.Type.NODE_REMOVED == event.getType()) {
-                        if (event.getData().getPath().split("/").length == 4) {
-                            String className = event.getData().getPath().split("/")[3];
-                            String ip = new String(event.getData().getData());
-                            unRegister(className, ip);
-                        }
-                    }
-                }
-            });
-
-        } catch (Exception e) {
-            logger.error(e);
-        }
-
-
-    }
-
-
+    /**
+     * 提供给应用来获取服务
+     * @param className
+     */
     private void discoveryAndCache(String className){
         boolean hasServer = false;
         try {
             //本地缓存中没有服务,就去zookeeper上主动发现一次
-            if (client.checkExists().forPath(joiner.join(path,className)) != null) {
-                List<String> childrens = client.getChildren().forPath(joiner.join(path,className));
+            if (getZkClient().checkExists().forPath(joiner.join(hrpcClientConfig.getRootPath(),className)) != null) {
+                List<String> childrens = getZkClient().getChildren().forPath(joiner.join(hrpcClientConfig.getRootPath(),className));
                 if (CollectionUtils.isNotEmpty(childrens)) {
                     for (String c : childrens) {
-                        String ip = new String(client.getData().forPath(joiner.join(path,className,c)));
-                        discoveryAndCache(className, ip);
+                        String ip = new String(getZkClient().getData().forPath(joiner.join(hrpcClientConfig.getRootPath(),className,c)));
+                        createServer(className, ip);
                         hasServer = true;
                     }
                 }
             }
         } catch (Exception e) {
-            logger.error(e);
+            logger.error("",e);
         }
 
         if (!hasServer) {
@@ -198,10 +171,13 @@ public class ServerDiscovery {
     }
 
 
-    private void discoveryAndCache(String className, String ip) {
-        if (serverMap.containsKey(className)
-                && serverMap.get(className).contains(ip)
-                && channelMap.containsKey(ip)) {
+    /**
+     * 创建服务
+     * @param className
+     * @param ip
+     */
+    private void createServer(String className, String ip) {
+        if (serverMap.containsKey(className) && serverMap.get(className).contains(ip) && channelMap.containsKey(ip)) {
             //已经缓存了channel,不需要在创建channel了
             return;
         }
@@ -217,7 +193,6 @@ public class ServerDiscovery {
             }
         }
         createConnect(ip);
-
     }
 
     /**
@@ -238,7 +213,8 @@ public class ServerDiscovery {
      *
      * @param address
      */
-    private void createConnect(final String address) {
+    private  void createConnect(final String address) {
+        final Bootstrap bootstrap=new Bootstrap();
         bootstrap.group(eventLoopGroup)
                 .channel(NioSocketChannel.class)
                 .remoteAddress(address.split(":")[0], Integer.valueOf(address.split(":")[1]))
@@ -247,8 +223,8 @@ public class ServerDiscovery {
                     @Override
                     protected void initChannel(SocketChannel socketChannel) throws Exception {
                         socketChannel.pipeline().addLast(new HrpcDecoder(HrpcResponse.class));
-                      //  socketChannel.pipeline().addLast(new IdleStateHandler(HrpcConnect.IDEL_TIME, HrpcConnect.IDEL_TIME, HrpcConnect.IDEL_TIME));
-                        socketChannel.pipeline().addLast(new HrpcClientHandler());
+                        socketChannel.pipeline().addLast(new IdleStateHandler(hrpcClientConfig.getIdelTime(), hrpcClientConfig.getIdelTime(), hrpcClientConfig.getIdelTime()));
+                        socketChannel.pipeline().addLast(hrpcClientConfig.getEventExecutorGroup(),new HrpcClientHandler(hrpcClientConfig.getIdelTime()));
                         socketChannel.pipeline().addLast(new HrpcEncoder(HrpcRequest.class));
                     }
                 });
@@ -258,51 +234,17 @@ public class ServerDiscovery {
                 @Override
                 public void operationComplete(ChannelFuture channelFuture) throws Exception {
                     if (channelFuture.isSuccess()) {
-                        HrpcConnect hrpcConnect = new HrpcConnect(address, channelFuture.channel(), new Date().getTime());
+                        HrpcConnect hrpcConnect = new HrpcConnect(address, channelFuture.channel(),bootstrap);
                         channelMap.put(address, hrpcConnect);
                         countDownLatch.countDown();
                     }
                 }
-            }).sync();
+            });
             countDownLatch.await(1, TimeUnit.SECONDS);
             channelFuture.channel().closeFuture();
         } catch (InterruptedException e) {
             logger.error(e);
         }
-    }
-
-
-    public static ServerDiscovery getInstance() {
-        if (!instance.isRun) {
-            synchronized (ServerDiscovery.class) {
-                if (!instance.isRun) {
-                    instance.registerZookeeper();
-                    instance.removeIdleConnect();
-                    instance.isRun = true;
-                }
-            }
-        }
-        return instance;
-    }
-
-    private void removeIdleConnect() {
-
-        Timer timer = new Timer();
-        timer.schedule(new TimerTask() {
-            @Override
-            public void run() {
-                Iterator<Map.Entry<String, HrpcConnect>> it = channelMap.entrySet().iterator();
-                while (it.hasNext()) {
-                    Map.Entry<String, HrpcConnect> entity = it.next();
-                    if (entity.getValue().isIdle()) {
-                        entity.getValue().close();
-                        it.remove();
-                    }
-                }
-                getInstance().consoleMessage();
-            }
-        }, 5000, 2000);
-
     }
 
 
@@ -328,9 +270,50 @@ public class ServerDiscovery {
     }
 
 
-    public static void main(String[] args) throws InterruptedException {
-        System.out.println(Iterables.getLast(Splitter.on(".").split(null)));
+    /**
+     * 连接zookeeper
+     */
+    public void registerZookeeper() {
+        String rootPath=hrpcClientConfig.getRootPath();
+        TreeCache treeCache = null;//递归的监听根节点下的子节点,包括孙子节点
+        try {
+            if (getZkClient().checkExists().forPath(rootPath) == null) {
+                getZkClient().create().forPath(rootPath);
+            }
+            treeCache = new TreeCache(getZkClient(), rootPath);
+            treeCache.start();
+
+            treeCache.getListenable().addListener(new TreeCacheListener() {
+                @Override
+                public void childEvent(CuratorFramework client, TreeCacheEvent event) throws Exception {
+                    if (TreeCacheEvent.Type.NODE_ADDED == event.getType()) {
+                        //自动去发现新注册上来的服务
+                        if (event.getData().getPath().split("/").length == 4) {
+                            String className = event.getData().getPath().split("/")[2];
+                            String ip = new String(event.getData().getData());
+                            createServer(className, ip);
+                        }
+                    } else if (TreeCacheEvent.Type.NODE_REMOVED == event.getType()) {
+                        if (event.getData().getPath().split("/").length == 4) {
+                            String className = event.getData().getPath().split("/")[3];
+                            String ip = new String(event.getData().getData());
+                            unRegister(className, ip);
+                        }
+                    }
+                }
+            });
+
+        } catch (Exception e) {
+            logger.error(e);
+        }
     }
 
+    private CuratorFramework getZkClient(){
+        if(client==null){
+            client = CuratorFrameworkFactory.newClient(hrpcClientConfig.getZkAddress(), 5000, 5000, new ExponentialBackoffRetry(1000, 3));
+            client.start();
+        }
+        return client;
+    }
 
 }

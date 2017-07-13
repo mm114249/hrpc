@@ -1,5 +1,6 @@
 package com.pairs.arch.rpc.client;
 
+import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
 
 import java.util.Date;
@@ -12,60 +13,42 @@ public class HrpcConnect {
 
     private String address;
     private Channel channel;
-    private Long lastActive;
-    private AtomicInteger idelTotal=new AtomicInteger(0);
+    private Bootstrap bootstrap;
+    private AtomicInteger heartMax=new AtomicInteger(0);//累计的心跳次数,发送心跳 次数+1,得到pong消息次数-1
 
-    public static final Integer IDEL_TIME=5;//空闲检查一次的时间
-
-    public HrpcConnect(String address, Channel channel, Long lastActive) {
+    public HrpcConnect(String address, Channel channel,Bootstrap bootstrap) {
         this.address = address;
         this.channel = channel;
-        this.lastActive = lastActive;
+        this.bootstrap=bootstrap;
     }
-
 
     public void writeAndFlush(Object obj){
-        this.lastActive=new Date().getTime();
         channel.writeAndFlush(obj);
-    }
-
-    /**
-     * 空闲连接检测
-     * @return
-     */
-    public boolean isIdle(){
-        if(new Date().getTime()-lastActive>100*1000){
-            return true;
-        }else {
-            return false;
-        }
-    }
-
-    public void close(){
-        this.channel.close();
     }
 
     public Channel getChannel() {
         return channel;
     }
 
-
-    public AtomicInteger getIdelTotal() {
-        return idelTotal;
+    public AtomicInteger getHeartMax() {
+        return heartMax;
     }
 
-    public void setIdelTotal(AtomicInteger idelTotal) {
-        this.idelTotal = idelTotal;
+
+    public Bootstrap getBootstrap() {
+        return bootstrap;
     }
 
+    public String getAddress() {
+        return address;
+    }
 
     @Override
     public String toString() {
         return "HrpcConnect{" +
                 "address='" + address + '\'' +
                 ", channel=" + channel +
-                ", lastActive=" + lastActive +
-                ", idelTotal=" + idelTotal +
+                ", heartMax=" + heartMax +
                 '}';
     }
 }

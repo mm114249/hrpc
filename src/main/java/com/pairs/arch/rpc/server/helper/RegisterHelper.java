@@ -59,11 +59,12 @@ public class RegisterHelper {
         try {
             if(beanMap!=null){
                 for (Map.Entry<String, Object> entry : beanMap.entrySet()) {
-                    String interfaceName = entry.getKey();
+                    Class<?>[] interfaces = entry.getValue().getClass().getInterfaces();
+                    String interfaceName = interfaces[0].getName();
                     client.create().creatingParentsIfNeeded()
                             .withMode(CreateMode.EPHEMERAL_SEQUENTIAL)
                             .forPath(joiner.join(hrpcServerConfig.getRootPath(),interfaceName,"server"), address.getBytes());
-                    ServerWrap.addServer(interfaceName, entry.getValue().getClass());
+                    //ServerWrap.addServer(interfaceName, entry.getValue().getClass());
                 }
             }
         } catch (KeeperException.ConnectionLossException lossException) {

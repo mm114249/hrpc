@@ -65,8 +65,8 @@ public class HrpcRequest {
     }
 
     public enum RequestType{
-        NORMAL(Short.valueOf("1")),
-        HEART(Short.valueOf("2"));
+        NORMAL(Short.valueOf("1")),//正常消息
+        HEART(Short.valueOf("2"));//心跳消息
 
         private short value;
 

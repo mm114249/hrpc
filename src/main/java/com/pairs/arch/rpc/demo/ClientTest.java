@@ -1,12 +1,9 @@
 package com.pairs.arch.rpc.demo;
 
-import com.google.common.collect.Lists;
+import com.pairs.arch.rpc.client.config.HrpcClientConfig;
 import com.pairs.arch.rpc.client.proxy.HrpcProxy;
-import com.pairs.arch.rpc.client.registry.ServerDiscovery;
+import com.pairs.arch.rpc.client.discovery.ServerDiscovery;
 
-import java.math.BigDecimal;
-import java.util.Date;
-import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -16,12 +13,14 @@ import java.util.concurrent.Executors;
 public class ClientTest {
 
     public static void main(String[] args) throws InterruptedException {
-
         ExecutorService executorService= Executors.newFixedThreadPool(1);
-        final HelloServer helloServer= HrpcProxy.getInstance(ServerDiscovery.getInstance()).getBean(HelloServer.class);
+        HrpcClientConfig hrpcClientConfig=new HrpcClientConfig("192.168.100.13:2181");
+        ServerDiscovery serverDiscovery=new ServerDiscovery(hrpcClientConfig);
+        serverDiscovery.registerZookeeper();
+
+        final HelloServer helloServer= HrpcProxy.getInstance(serverDiscovery).getBean(HelloServer.class);
 
         for(int i=0;i<1;i++){
-            Thread.sleep(2000);
             executorService.execute(new Runnable() {
                 @Override
                 public void run() {

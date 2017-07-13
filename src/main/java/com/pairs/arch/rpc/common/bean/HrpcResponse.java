@@ -5,7 +5,7 @@ package com.pairs.arch.rpc.common.bean;
  */
 public class HrpcResponse {
 
-    private Short type;
+    private Short type;//消息类型 1正常消息 2心跳消息
     private String requestId;
     private Throwable error;
     private Object result;
