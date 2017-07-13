@@ -69,8 +69,8 @@ public class HrpcClientHandler extends SimpleChannelInboundHandler<HrpcResponse>
             IdleStateEvent idleStateEvent = (IdleStateEvent) evt;
             if(idleStateEvent.state() == IdleState.WRITER_IDLE){
                 HrpcConnect connect= ServerDiscoveryWarp.serverDiscovery.getConnect(ctx.channel());
-                System.out.println("aaa-->"+connect);
-                if(connect.getHeartMax().get()>3){
+                if(connect.getHeartMax().get()>2){
+                    System.out.println(11111);
                     //累计发送3次心跳,表示服务器端不可,客户端主动关闭channel
                     HrpcConnect hrpcConnect = ServerDiscovery.getConnect(ctx.channel());
                     String address=hrpcConnect.getAddress();

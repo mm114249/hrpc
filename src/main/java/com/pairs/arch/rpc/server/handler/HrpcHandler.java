@@ -28,7 +28,7 @@ public class HrpcHandler extends SimpleChannelInboundHandler<HrpcRequest> {
             //心跳消息，回复一pong消息
             HrpcResponse response=new HrpcResponse(HrpcRequest.RequestType.HEART);
             response.setRequestId(hrpcRequest.getRequestId());
-            ctx.channel().writeAndFlush(response);
+           // ctx.channel().writeAndFlush(response);
         }
     }
 
