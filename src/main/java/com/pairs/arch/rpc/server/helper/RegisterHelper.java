@@ -15,6 +15,7 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 
+import java.lang.annotation.Annotation;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Map;
@@ -68,7 +69,9 @@ public class RegisterHelper implements InitializingBean,ApplicationContextAware 
             if(beanMap!=null){
                 for (Map.Entry<String, Object> entry : beanMap.entrySet()) {
                     Class<?>[] interfaces = entry.getValue().getClass().getInterfaces();
-                    String interfaceName = interfaces[0].getName();
+                    HrpcServer s=entry.getValue().getClass().getAnnotation(HrpcServer.class);
+                    Class clzz=s.value();
+                    String interfaceName=clzz.getName();
                     client.create().creatingParentsIfNeeded()
                             .withMode(CreateMode.EPHEMERAL_SEQUENTIAL)
                             .forPath(joiner.join(hrpcServerConfig.getRootPath(),interfaceName,"server"), address.getBytes());
