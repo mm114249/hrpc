@@ -4,7 +4,6 @@ import com.pairs.arch.rpc.client.HrpcConnect;
 import com.pairs.arch.rpc.client.ResponseWrap;
 import com.pairs.arch.rpc.client.SyncLock;
 import com.pairs.arch.rpc.client.discovery.ServerDiscovery;
-import com.pairs.arch.rpc.client.discovery.ServerDiscoveryWarp;
 import com.pairs.arch.rpc.common.bean.HrpcRequest;
 import com.pairs.arch.rpc.common.bean.HrpcResponse;
 import io.netty.bootstrap.Bootstrap;
@@ -13,8 +12,6 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
-import io.netty.util.concurrent.Future;
-import io.netty.util.concurrent.GenericFutureListener;
 import org.apache.log4j.Logger;
 
 import java.util.UUID;
@@ -26,9 +23,11 @@ import java.util.concurrent.CountDownLatch;
 public class HrpcClientHandler extends SimpleChannelInboundHandler<HrpcResponse> {
     private Logger logger=Logger.getLogger(HrpcClientHandler.class);
     private Integer idelMax;//最大空闲连接检查次数,当连接检查次数达到最大值得时候,说明该channel已经长时间没有发送消息了,需要主动关闭该链路
+    private ServerDiscovery serverDiscovery;
 
-    public HrpcClientHandler(Integer idelMax){
+    public HrpcClientHandler(Integer idelMax,ServerDiscovery serverDiscovery){
         this.idelMax =idelMax;
+        this.serverDiscovery=serverDiscovery;
     }
 
     @Override
@@ -41,9 +40,8 @@ public class HrpcClientHandler extends SimpleChannelInboundHandler<HrpcResponse>
                 latch.countDown();
             }
         }else{
-            System.out.println("得到服务器pong消息");
             //接收到服务器的pong消息，计数器减一
-            HrpcConnect connect= ServerDiscoveryWarp.serverDiscovery.getConnect(channelHandlerContext.channel());
+            HrpcConnect connect= serverDiscovery.getConnect(channelHandlerContext.channel());
             if(connect!=null){
                 connect.getHeartMax().decrementAndGet();
             }
@@ -53,7 +51,7 @@ public class HrpcClientHandler extends SimpleChannelInboundHandler<HrpcResponse>
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        ServerDiscoveryWarp.serverDiscovery.removeServer(ctx.channel());
+        serverDiscovery.removeConnect(ctx.channel());
     }
 
     /**
@@ -68,13 +66,12 @@ public class HrpcClientHandler extends SimpleChannelInboundHandler<HrpcResponse>
         if (evt.getClass().isAssignableFrom(IdleStateEvent.class)) {
             IdleStateEvent idleStateEvent = (IdleStateEvent) evt;
             if(idleStateEvent.state() == IdleState.WRITER_IDLE){
-                HrpcConnect connect= ServerDiscoveryWarp.serverDiscovery.getConnect(ctx.channel());
+                HrpcConnect connect= serverDiscovery.getConnect(ctx.channel());
                 if(connect.getHeartMax().get()>2){
-                    System.out.println(11111);
                     //累计发送3次心跳,表示服务器端不可,客户端主动关闭channel
-                    HrpcConnect hrpcConnect = ServerDiscovery.getConnect(ctx.channel());
+                    HrpcConnect hrpcConnect = serverDiscovery.getConnect(ctx.channel());
                     String address=hrpcConnect.getAddress();
-                    ServerDiscovery.removeConnect(ctx.channel());
+                    serverDiscovery.removeConnect(ctx.channel());
                     ctx.channel().close();
                     //然后进行服务重新连接,重连10次
                     for(int i=0;i<10;i++){
@@ -82,7 +79,7 @@ public class HrpcClientHandler extends SimpleChannelInboundHandler<HrpcResponse>
                         ChannelFuture future=bootstrap.connect().sync();
                         if(future.isSuccess()){
                             HrpcConnect c = new HrpcConnect(address, future.channel(), bootstrap);
-                            ServerDiscovery.addConnect(c);
+                            serverDiscovery.addConnect(c);
                             break;
                         }
                     }

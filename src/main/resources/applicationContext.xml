@@ -11,4 +11,29 @@
     <context:component-scan base-package="com.pairs">
         <context:exclude-filter type="annotation" expression="org.springframework.stereotype.Controller" />
     </context:component-scan>
+
+
+    <bean id="rpcConfig" class="com.pairs.arch.rpc.server.config.HrpcServerConfig">
+        <constructor-arg index="0" value="8010"/>
+        <constructor-arg index="1" value="192.168.100.13:2181"/>
+    </bean>
+
+    <bean id="registerHelper" class="com.pairs.arch.rpc.server.helper.RegisterHelper">
+         <property name="hrpcServerConfig" ref="rpcConfig"/>
+    </bean>
+
+    <bean  id="bootstrapCreaterHelper" class="com.pairs.arch.rpc.server.helper.BootstrapCreaterHelper">
+        <property name="hrpcServerConfig" ref="rpcConfig"/>
+    </bean>
+
+    <bean id="hrpcClientConfig" class="com.pairs.arch.rpc.client.config.HrpcClientConfig">
+        <constructor-arg index="0" value="192.168.100.13:2181"/>
+    </bean>
+
+    <bean id="serverDiscovery" class="com.pairs.arch.rpc.client.discovery.ServerDiscovery">
+        <constructor-arg index="0" ref="hrpcClientConfig"/>
+    </bean>
+
+
+
 </beans>

@@ -7,6 +7,7 @@ import com.pairs.arch.rpc.common.codec.HrpcEncoder;
 import com.pairs.arch.rpc.server.config.HrpcServerConfig;
 import com.pairs.arch.rpc.server.config.ThreadConfig;
 import com.pairs.arch.rpc.server.handler.HrpcHandler;
+import com.sun.org.apache.xml.internal.security.Init;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
@@ -17,14 +18,19 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import org.apache.log4j.Logger;
+import org.springframework.beans.factory.InitializingBean;
 
 /**
  * Created by hupeng on 2017/3/30.
  */
-public class BootstrapCreaterHelper{
+public class BootstrapCreaterHelper implements InitializingBean {
     private static Logger logger=Logger.getLogger(BootstrapCreaterHelper.class);
 
     private HrpcServerConfig hrpcServerConfig;
+
+    public BootstrapCreaterHelper(){
+
+    }
 
     public BootstrapCreaterHelper(HrpcServerConfig hrpcServerConfig) {
         this.hrpcServerConfig = hrpcServerConfig;
@@ -59,5 +65,14 @@ public class BootstrapCreaterHelper{
                 }
             }
         });
+    }
+
+    public void setHrpcServerConfig(HrpcServerConfig hrpcServerConfig) {
+        this.hrpcServerConfig = hrpcServerConfig;
+    }
+
+    @Override
+    public void afterPropertiesSet() throws Exception {
+        createBootstrap();
     }
 }

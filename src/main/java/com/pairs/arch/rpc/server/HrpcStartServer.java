@@ -24,19 +24,14 @@ import java.util.List;
  **/
 public class HrpcStartServer {
 
-    public static void start(HrpcServerConfig hrpcServerConfig){
+    public static void start(){
         List<Container> containerList = new ArrayList<Container>();
         containerList.add(new ApplicationContextContainer());// 启动spring容器
-        containerList.add(new HrpcServerContainer(hrpcServerConfig));
         ContainerHelper.start(containerList);
     }
 
     public static void main(String[] args) {
-        HrpcServerConfig hrpcServerConfig=new HrpcServerConfig();
-        hrpcServerConfig.setZkAddress("192.168.100.13:2181");
-        hrpcServerConfig.setServerPort(7070);
-
-        start(hrpcServerConfig);
+        start();
     }
 
 }

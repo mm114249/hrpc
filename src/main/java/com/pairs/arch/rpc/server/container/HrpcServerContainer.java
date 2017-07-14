@@ -12,7 +12,7 @@ import com.pairs.arch.rpc.server.helper.RegisterHelper;
  * <p>
  * Description :[]
  * </p>
- * Company:武汉灵达科技有限公司
+ * Company:
  *
  * @author []
  * @version 1.0
@@ -27,8 +27,6 @@ public class HrpcServerContainer implements Container {
 
     @Override
     public void start() {
-        new RegisterHelper(hrpcServerConfig).serverRegister();
-        new BootstrapCreaterHelper(hrpcServerConfig).createBootstrap();
     }
 
     @Override

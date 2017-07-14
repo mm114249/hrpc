@@ -4,13 +4,16 @@ import com.google.common.base.Joiner;
 import com.pairs.arch.rpc.server.annotation.HrpcServer;
 import com.pairs.arch.rpc.server.config.HrpcServerConfig;
 import com.pairs.arch.rpc.server.container.ApplicationContextBuilder;
-import com.pairs.arch.rpc.server.util.ServerWrap;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.ExponentialBackoffRetry;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
+import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.InitializingBean;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -29,11 +32,16 @@ import java.util.Map;
  * @author [hupeng]
  * @version 1.0
  **/
-public class RegisterHelper {
+public class RegisterHelper implements InitializingBean,ApplicationContextAware  {
 
     private static Logger logger=Logger.getLogger(RegisterHelper.class);
     private HrpcServerConfig hrpcServerConfig;
+    private ApplicationContext applicationContext;
 
+
+    public RegisterHelper(){
+
+    }
 
     public RegisterHelper(HrpcServerConfig hrpcServerConfig) {
         this.hrpcServerConfig = hrpcServerConfig;
@@ -49,7 +57,7 @@ public class RegisterHelper {
         Joiner joiner=Joiner.on("/").skipNulls();
         logger.debug(String.format("---connect zookeeper starts。address is :%s---",hrpcServerConfig.getZkAddress()));
 
-        Map<String, Object> beanMap = ApplicationContextBuilder.getInstance().getAppContext().getBeansWithAnnotation(HrpcServer.class);
+        Map<String, Object> beanMap =applicationContext.getBeansWithAnnotation(HrpcServer.class);
 
         String ip = getIp();//获得本机IP
         String address = ip + ":" + hrpcServerConfig.getServerPort().toString();
@@ -64,7 +72,6 @@ public class RegisterHelper {
                     client.create().creatingParentsIfNeeded()
                             .withMode(CreateMode.EPHEMERAL_SEQUENTIAL)
                             .forPath(joiner.join(hrpcServerConfig.getRootPath(),interfaceName,"server"), address.getBytes());
-                    //ServerWrap.addServer(interfaceName, entry.getValue().getClass());
                 }
             }
         } catch (KeeperException.ConnectionLossException lossException) {
@@ -90,4 +97,17 @@ public class RegisterHelper {
         return ip;
     }
 
+    public void setHrpcServerConfig(HrpcServerConfig hrpcServerConfig) {
+        this.hrpcServerConfig = hrpcServerConfig;
+    }
+
+    @Override
+    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+        this.applicationContext=applicationContext;
+    }
+
+    @Override
+    public void afterPropertiesSet() throws Exception {
+        serverRegister();
+    }
 }

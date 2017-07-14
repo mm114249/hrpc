@@ -7,10 +7,12 @@ import com.google.common.collect.Iterables;
 import com.pairs.arch.rpc.client.HrpcConnect;
 import com.pairs.arch.rpc.client.config.HrpcClientConfig;
 import com.pairs.arch.rpc.client.hanler.HrpcClientHandler;
+import com.pairs.arch.rpc.client.proxy.HrpcProxy;
 import com.pairs.arch.rpc.common.bean.HrpcRequest;
 import com.pairs.arch.rpc.common.bean.HrpcResponse;
 import com.pairs.arch.rpc.common.codec.HrpcDecoder;
 import com.pairs.arch.rpc.common.codec.HrpcEncoder;
+import com.sun.org.apache.xerces.internal.dom.PSVIAttrNSImpl;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
@@ -30,6 +32,7 @@ import org.apache.curator.framework.recipes.cache.TreeCacheEvent;
 import org.apache.curator.framework.recipes.cache.TreeCacheListener;
 import org.apache.curator.retry.ExponentialBackoffRetry;
 import org.apache.log4j.Logger;
+import org.springframework.beans.factory.InitializingBean;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -46,31 +49,22 @@ import java.util.concurrent.TimeUnit;
 /**
  * Created by hupeng on 2017/3/27.
  */
-public class ServerDiscovery {
+public class ServerDiscovery implements InitializingBean {
 
-    private EventLoopGroup eventLoopGroup = new NioEventLoopGroup(4);
-    private boolean isRun = false;//服务是否启动,服务启动了就不在执行zookeeper注册和空闲链路检查注册了
+    private EventLoopGroup eventLoopGroup;
     private Logger logger = Logger.getLogger(ServerDiscovery.class);
     private Joiner joiner = Joiner.on("/").skipNulls();
     private CuratorFramework client;
     private HrpcClientConfig hrpcClientConfig;
+    private ServerDiscovery instance;
+    private static Map<String, List<String>> serverMap = new HashMap<String, List<String>>();//服务列表 key:classname value:ip列表
+    private static Map<String, HrpcConnect> channelMap = new HashMap<String, HrpcConnect>();//远程地址列表 key:ip value:Channel。维护一个单独的ip列表,是为了方便检查ip时候已经建立channel
 
-    /**
-     * 服务列表
-     * key:classname value:ip列表
-     */
-    private static Map<String, List<String>> serverMap = new HashMap<String, List<String>>();
-    /**
-     * 远程地址列表
-     * key:ip value:Channel
-     * <p>
-     * 维护一个单独的ip列表,是为了方便检查ip时候已经建立channel
-     */
-    private static Map<String, HrpcConnect> channelMap = new HashMap<String, HrpcConnect>();
 
     public ServerDiscovery(HrpcClientConfig hrpcClientConfig) {
         this.hrpcClientConfig = hrpcClientConfig;
-        ServerDiscoveryWarp.setServerDiscovery(this);
+        this.eventLoopGroup=hrpcClientConfig.getEventLoopGroup();
+        instance=this;
     }
 
     /**
@@ -96,7 +90,7 @@ public class ServerDiscovery {
     }
 
 
-    public static HrpcConnect getConnect(Channel channel) {
+    public HrpcConnect getConnect(Channel channel) {
         for (Map.Entry<String, HrpcConnect> entry : channelMap.entrySet()) {
             if (channel.id().asShortText().equals(entry.getValue().getChannel().id().asShortText())) {
                 return entry.getValue();
@@ -110,7 +104,7 @@ public class ServerDiscovery {
      *
      * @param channel
      */
-    public static void removeConnect(Channel channel) {
+    public void removeConnect(Channel channel) {
         String removeKey = "";
         for (Map.Entry<String, HrpcConnect> entry : channelMap.entrySet()) {
             if (channel.id().asShortText().equals(entry.getValue().getChannel().id().asShortText())) {
@@ -126,26 +120,10 @@ public class ServerDiscovery {
      *
      * @param hrpcConnect
      */
-    public static void addConnect(HrpcConnect hrpcConnect) {
+    public void addConnect(HrpcConnect hrpcConnect) {
         channelMap.put(hrpcConnect.getAddress(), hrpcConnect);
     }
 
-
-    /**
-     * 删除链接
-     *
-     * @param channel
-     */
-    public void removeServer(Channel channel) {
-        String removeKey = "";
-        for (Map.Entry<String, HrpcConnect> entry : channelMap.entrySet()) {
-            if (channel.id().asShortText().equals(entry.getValue().getChannel().id().asShortText())) {
-                removeKey = entry.getKey();
-                break;
-            }
-        }
-        channelMap.remove(removeKey);
-    }
 
     /**
      * 提供给应用来获取服务
@@ -156,11 +134,11 @@ public class ServerDiscovery {
         boolean hasServer = false;
         try {
             //本地缓存中没有服务,就去zookeeper上主动发现一次
-            if (getZkClient().checkExists().forPath(joiner.join(hrpcClientConfig.getRootPath(), className)) != null) {
-                List<String> childrens = getZkClient().getChildren().forPath(joiner.join(hrpcClientConfig.getRootPath(), className));
+            if (client.checkExists().forPath(joiner.join(hrpcClientConfig.getRootPath(), className)) != null) {
+                List<String> childrens = client.getChildren().forPath(joiner.join(hrpcClientConfig.getRootPath(), className));
                 if (CollectionUtils.isNotEmpty(childrens)) {
                     for (String c : childrens) {
-                        String ip = new String(getZkClient().getData().forPath(joiner.join(hrpcClientConfig.getRootPath(), className, c)));
+                        String ip = new String(client.getData().forPath(joiner.join(hrpcClientConfig.getRootPath(), className, c)));
                         createServer(className, ip);
                         hasServer = true;
                     }
@@ -232,7 +210,7 @@ public class ServerDiscovery {
                     protected void initChannel(SocketChannel socketChannel) throws Exception {
                         socketChannel.pipeline().addLast(new HrpcDecoder(HrpcResponse.class));
                         socketChannel.pipeline().addLast(new IdleStateHandler(hrpcClientConfig.getIdelTime(), hrpcClientConfig.getIdelTime(), hrpcClientConfig.getIdelTime()));
-                        socketChannel.pipeline().addLast(hrpcClientConfig.getEventExecutorGroup(), new HrpcClientHandler(hrpcClientConfig.getIdelTime()));
+                        socketChannel.pipeline().addLast(hrpcClientConfig.getEventExecutorGroup(), new HrpcClientHandler(hrpcClientConfig.getIdelTime(),instance));
                         socketChannel.pipeline().addLast(new HrpcEncoder(HrpcRequest.class));
                     }
                 });
@@ -282,10 +260,10 @@ public class ServerDiscovery {
         String rootPath = hrpcClientConfig.getRootPath();
         TreeCache treeCache = null;//递归的监听根节点下的子节点,包括孙子节点
         try {
-            if (getZkClient().checkExists().forPath(rootPath) == null) {
-                getZkClient().create().forPath(rootPath);
+            if (client.checkExists().forPath(rootPath) == null) {
+                client.create().forPath(rootPath);
             }
-            treeCache = new TreeCache(getZkClient(), rootPath);
+            treeCache = new TreeCache(client, rootPath);
             treeCache.start();
 
             treeCache.getListenable().addListener(new TreeCacheListener() {
@@ -307,25 +285,27 @@ public class ServerDiscovery {
                     }
                 }
             });
-
-            eventLoopGroup.scheduleAtFixedRate(new Runnable() {
-                @Override
-                public void run() {
-                    consoleMessage();
-                }
-            }, 2,2, TimeUnit.SECONDS);
-
         } catch (Exception e) {
-            logger.error(e);
+            logger.error("zk连接错误",e);
         }
     }
 
-    private CuratorFramework getZkClient() {
-        if (client == null) {
-            client = CuratorFrameworkFactory.newClient(hrpcClientConfig.getZkAddress(), 5000, 5000, new ExponentialBackoffRetry(1000, 3));
-            client.start();
-        }
-        return client;
+    @Override
+    public void afterPropertiesSet() throws Exception {
+        client = CuratorFrameworkFactory.newClient(hrpcClientConfig.getZkAddress(), 5000, 5000, new ExponentialBackoffRetry(1000, 3));
+        client.start();
+        registerZookeeper();//客户端连接zk
+        HrpcProxy.getInstance().setServerDiscovery(this);
+
+        eventLoopGroup.scheduleAtFixedRate(new Runnable() {
+            @Override
+            public void run() {
+                consoleMessage();
+            }
+        }, 30,30, TimeUnit.SECONDS);
+
     }
+
+
 
 }

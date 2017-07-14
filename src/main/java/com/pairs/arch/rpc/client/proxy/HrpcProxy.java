@@ -58,10 +58,14 @@ public class HrpcProxy {
 
     }
 
+    public void setServerDiscovery(ServerDiscovery serverDiscovery) {
+        this.serverDiscovery = serverDiscovery;
+    }
 
-    public static HrpcProxy getInstance(ServerDiscovery serverDiscovery) {
-        instance.serverDiscovery=serverDiscovery;
+    public static HrpcProxy getInstance() {
         return instance;
     }
+
+
 
 }
