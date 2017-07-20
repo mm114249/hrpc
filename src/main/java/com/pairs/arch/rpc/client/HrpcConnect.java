@@ -14,7 +14,6 @@ public class HrpcConnect {
     private String address;
     private Channel channel;
     private Bootstrap bootstrap;
-    private AtomicInteger heartMax=new AtomicInteger(0);//累计的心跳次数,发送心跳 次数+1,得到pong消息次数-1
 
     public HrpcConnect(String address, Channel channel,Bootstrap bootstrap) {
         this.address = address;
@@ -30,9 +29,6 @@ public class HrpcConnect {
         return channel;
     }
 
-    public AtomicInteger getHeartMax() {
-        return heartMax;
-    }
 
 
     public Bootstrap getBootstrap() {
@@ -48,7 +44,6 @@ public class HrpcConnect {
         return "HrpcConnect{" +
                 "address='" + address + '\'' +
                 ", channel=" + channel +
-                ", heartMax=" + heartMax +
                 '}';
     }
 }

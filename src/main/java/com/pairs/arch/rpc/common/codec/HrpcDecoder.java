@@ -2,6 +2,7 @@ package com.pairs.arch.rpc.common.codec;
 
 import com.pairs.arch.rpc.common.util.SerializationUtil;
 import io.netty.buffer.ByteBuf;
+import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ByteToMessageDecoder;
 
@@ -50,7 +51,6 @@ public class HrpcDecoder extends ByteToMessageDecoder {
 
         byte[] data=new byte[dataLength];
         byteBuf.readBytes(data);
-
         Object obj= SerializationUtil.deserialize(data,clazz);
         list.add(obj);
     }

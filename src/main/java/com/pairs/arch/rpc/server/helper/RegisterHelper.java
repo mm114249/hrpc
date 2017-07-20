@@ -68,7 +68,6 @@ public class RegisterHelper implements InitializingBean,ApplicationContextAware 
         try {
             if(beanMap!=null){
                 for (Map.Entry<String, Object> entry : beanMap.entrySet()) {
-                    Class<?>[] interfaces = entry.getValue().getClass().getInterfaces();
                     HrpcServer s=entry.getValue().getClass().getAnnotation(HrpcServer.class);
                     Class clzz=s.value();
                     String interfaceName=clzz.getName();

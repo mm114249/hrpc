@@ -31,7 +31,7 @@ public class HrpcClientConfig {
     }
 
     public HrpcClientConfig(String zkAddress) {
-       this(zkAddress,2,1);
+       this(zkAddress,2,0);
     }
 
     public HrpcClientConfig( String zkAddress,Integer executorCount,Integer eventLoopCount) {

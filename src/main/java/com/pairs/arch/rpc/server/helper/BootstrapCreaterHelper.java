@@ -6,6 +6,7 @@ import com.pairs.arch.rpc.common.codec.HrpcDecoder;
 import com.pairs.arch.rpc.common.codec.HrpcEncoder;
 import com.pairs.arch.rpc.server.config.HrpcServerConfig;
 import com.pairs.arch.rpc.server.handler.HrpcHandler;
+import com.pairs.arch.rpc.server.handler.IdleStatusTrigger;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
@@ -13,6 +14,7 @@ import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.handler.timeout.IdleStateHandler;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.InitializingBean;
 
@@ -45,6 +47,8 @@ public class BootstrapCreaterHelper implements InitializingBean {
                     @Override
                     public void initChannel(SocketChannel channel) throws Exception {
                         channel.pipeline().addLast(hrpcServerConfig.getEventExecutors(),new HrpcDecoder(HrpcRequest.class));
+                        channel.pipeline().addLast(hrpcServerConfig.getEventExecutors(),new IdleStateHandler(5,5,5));
+                        channel.pipeline().addLast(hrpcServerConfig.getEventExecutors(),new IdleStatusTrigger());
                         channel.pipeline().addLast(hrpcServerConfig.getEventExecutors(),new HrpcHandler());
                         channel.pipeline().addLast(hrpcServerConfig.getEventExecutors(),new HrpcEncoder(HrpcResponse.class));
                     }

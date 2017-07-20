@@ -4,6 +4,9 @@ import com.google.common.collect.Lists;
 import com.pairs.arch.rpc.client.proxy.HrpcProxy;
 import com.pairs.arch.rpc.server.HrpcStartServer;
 import com.pairs.arch.rpc.server.config.HrpcServerConfig;
+import org.apache.commons.logging.Log;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.support.AbstractApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
@@ -11,6 +14,9 @@ import org.springframework.context.support.ClassPathXmlApplicationContext;
  * Created by hupeng on 2017/3/28.
  */
 public class RpcTest {
+
+    private static final Logger logger= LoggerFactory.getLogger(RpcTest.class);
+
     public static void main(String[] args) {
         AbstractApplicationContext appContext = new ClassPathXmlApplicationContext("classpath:applicationContext.xml");
 
@@ -19,6 +25,8 @@ public class RpcTest {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
+
+
         try{
             HelloServer helloServer = HrpcProxy.getInstance().getBean(HelloServer.class);
             System.out.println(helloServer.getName("aaa"));
