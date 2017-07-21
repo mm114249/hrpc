@@ -30,6 +30,7 @@ import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.util.HashedWheelTimer;
+import io.netty.util.Timeout;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
@@ -212,17 +213,16 @@ public class ServerDiscovery implements InitializingBean {
         Bootstrap bootstrap = new Bootstrap();
         bootstrap.group(eventLoopGroup)
                 .channel(NioSocketChannel.class)
-                //.remoteAddress(host, port)
                 .option(ChannelOption.TCP_NODELAY, true);
-        //  bootstrap.handler(new LoggingHandler(LogLevel.INFO));
-        final ConnectWatchDog connectWatchDog = new ConnectWatchDog(hashedWheelTimer, bootstrap, host, port) {
+          bootstrap.handler(new LoggingHandler(LogLevel.INFO));
+        final ConnectWatchDog connectWatchDog = new ConnectWatchDog(hashedWheelTimer, bootstrap, host, port,this) {
             @Override
             public ChannelHandler[] handler() {
                 return new ChannelHandler[]{
                         this,
                         new HrpcDecoder(HrpcResponse.class),
                       //  new IdleStateHandler(hrpcClientConfig.getIdelTime(), hrpcClientConfig.getIdelTime(), hrpcClientConfig.getIdelTime()),
-                        new HrpcClientHandler(hrpcClientConfig.getIdelTime(), instance),
+                        new HrpcClientHandler(instance),
                         new HrpcEncoder(HrpcRequest.class)
                 };
             }
@@ -238,16 +238,7 @@ public class ServerDiscovery implements InitializingBean {
                 }
             }
         });
-
-        bootstrap.connect(host,port).addListener(new ChannelFutureListener() {
-            @Override
-            public void operationComplete(ChannelFuture channelFuture) throws Exception {
-                if (channelFuture.isSuccess()) {
-                    HrpcConnect hrpcConnect = new HrpcConnect(address, channelFuture.channel(), null);
-                    channelMap.put(address, hrpcConnect);
-                }
-            }
-        });
+        bootstrap.connect(host,port);
     }
 
 
@@ -313,12 +304,12 @@ public class ServerDiscovery implements InitializingBean {
         client.start();
         registerZookeeper();//客户端连接zk
         HrpcProxy.getInstance().setServerDiscovery(this);
-//        eventLoopGroup.scheduleAtFixedRate(new Runnable() {
-//            @Override
-//            public void run() {
-//                consoleMessage();
-//            }
-//        }, 30, 30, TimeUnit.SECONDS);
+        eventLoopGroup.scheduleAtFixedRate(new Runnable() {
+            @Override
+            public void run() {
+                consoleMessage();
+            }
+        }, 5, 5, TimeUnit.SECONDS);
 
     }
 

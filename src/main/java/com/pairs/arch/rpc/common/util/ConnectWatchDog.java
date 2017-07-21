@@ -1,5 +1,7 @@
 package com.pairs.arch.rpc.common.util;
 
+import com.pairs.arch.rpc.client.HrpcConnect;
+import com.pairs.arch.rpc.client.discovery.ServerDiscovery;
 import com.sun.org.apache.xpath.internal.SourceTree;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
@@ -47,14 +49,15 @@ public abstract class ConnectWatchDog extends ChannelInboundHandlerAdapter imple
     private Timer timer;
     private volatile boolean connected = true;//是否已经连接 true已经连接 fasle没有连接
     private int attemtps;
-    private CountDownLatch downLatch = null;
+    private ServerDiscovery serverDiscovery;
 
 
-    public ConnectWatchDog(Timer timer, Bootstrap bootstrap, String host, Integer port) {
+    public ConnectWatchDog(Timer timer, Bootstrap bootstrap, String host, Integer port, ServerDiscovery serverDiscovery) {
         this.timer = timer;
         this.bootstrap = bootstrap;
         this.host = host;
         this.port = port;
+        this.serverDiscovery = serverDiscovery;
     }
 
     @Override
@@ -70,7 +73,6 @@ public abstract class ConnectWatchDog extends ChannelInboundHandlerAdapter imple
                     logger.info("重连成功");
                     channelFuture.channel().pipeline().fireChannelActive();
                 }
-                downLatch.countDown();
             }
         });
 
@@ -82,23 +84,24 @@ public abstract class ConnectWatchDog extends ChannelInboundHandlerAdapter imple
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         attemtps = 0;
         connected = true;
+        String remoteAddress = ctx.channel().remoteAddress().toString();
+        if (remoteAddress.indexOf("/") >= 0) {
+            remoteAddress = remoteAddress.replaceAll("/", "");
+        }
+        HrpcConnect hrpcConnect = new HrpcConnect(remoteAddress, ctx.channel());
+        serverDiscovery.addConnect(hrpcConnect);
         ctx.fireChannelActive();
     }
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        connected = false;
-        while (!connected) {
-            logger.info("链路开始重连接");
-            downLatch = new CountDownLatch(1);
-            long taskTime = 1 << attemtps;
-            attemtps++;
-            run(null);
-            downLatch.await();
-            if (attemtps == 5) {
-                connected = true;
-                logger.info(host + ":" + port + "服务已失效,不再进行重连");
-            }
+        logger.info("链路开始重连接");
+        long taskTime = 1 << attemtps;
+        attemtps++;
+        timer.newTimeout(this, taskTime, TimeUnit.SECONDS);
+        if (attemtps == 5) {
+            connected = true;
+            logger.info(host + ":" + port + "服务已失效,不再进行重连");
         }
         ctx.fireChannelInactive();
     }

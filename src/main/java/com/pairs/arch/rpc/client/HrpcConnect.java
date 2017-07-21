@@ -13,12 +13,10 @@ public class HrpcConnect {
 
     private String address;
     private Channel channel;
-    private Bootstrap bootstrap;
 
-    public HrpcConnect(String address, Channel channel,Bootstrap bootstrap) {
+    public HrpcConnect(String address, Channel channel) {
         this.address = address;
         this.channel = channel;
-        this.bootstrap=bootstrap;
     }
 
     public void writeAndFlush(Object obj){
@@ -27,12 +25,6 @@ public class HrpcConnect {
 
     public Channel getChannel() {
         return channel;
-    }
-
-
-
-    public Bootstrap getBootstrap() {
-        return bootstrap;
     }
 
     public String getAddress() {
