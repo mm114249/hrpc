@@ -58,28 +58,38 @@ public abstract class NettyRemotingBase {
 
 
     public RemotingTransporter invokeSyncImpl(final Channel channel, final RemotingTransporter request,final long timeoutMillis) throws InterruptedException {
-        //构建一个响应对象
-        final RemotingResponse remotingResponse=new RemotingResponse(request.getOpaque(),timeoutMillis,null);
-        //将响应对象加入篮子,等待rpc请求完成去修改篮子中对象的状态和释放countdown
-        responseTable.put(request.getOpaque(),remotingResponse);
-        //发请求
-        channel.writeAndFlush(request).addListener(new ChannelFutureListener() {
-            @Override
-            public void operationComplete(ChannelFuture channelFuture) throws Exception {
-                if(channelFuture.isSuccess()){
-                    remotingResponse.setSendRequestOK(true);
-                    return;
-                }else{
-                    remotingResponse.setSendRequestOK(false);
+        try{
+            //构建一个响应对象
+            final RemotingResponse remotingResponse=new RemotingResponse(request.getOpaque(),timeoutMillis,null);
+            //将响应对象加入篮子,等待rpc请求完成去修改篮子中对象的状态和释放countdown
+            responseTable.put(request.getOpaque(),remotingResponse);
+            //发请求
+            channel.writeAndFlush(request).addListener(new ChannelFutureListener() {
+                @Override
+                public void operationComplete(ChannelFuture channelFuture) throws Exception {
+                    if(channelFuture.isSuccess()){
+                        remotingResponse.setSendRequestOK(true);
+                        return;
+                    }else{
+                        remotingResponse.setSendRequestOK(false);
+                    }
+                    remotingResponse.setCause(channelFuture.cause());
+                    remotingResponse.putResponse(null);
                 }
+            });
 
-
+            RemotingTransporter remotingTransporter = remotingResponse.waitResponse();
+            if(remotingResponse==null){
+                if(remotingResponse.isSendRequestOK()){
+                    // TODO: 2017/8/9 请求超时
+                }else{
+                    // TODO: 2017/8/9 远程请求失败
+                }
             }
-        });
-        remotingResponse.waitResponse();
-
-
-
+            return remotingTransporter;
+        }finally {
+            responseTable.remove(request.getOpaque());
+        }
     }
 
 
