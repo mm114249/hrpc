@@ -1,15 +1,8 @@
-package com.pairs.arch.rpc.remote;
+package com.pairs.arch.rpc.remote.component;
 
 /**
  * Created on 2017年08月09日10:22
- * <p>
- * Title:[]
- * </p >
- * <p>
- * Description :[]
- * </p >
- * Company:
- *
+ * 定义客户端和服务器端共有的行为
  * @author [hupeng]
  * @version 1.0
  **/
