@@ -3,6 +3,7 @@ package com.pairs.arch.rpc.server.config;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.util.concurrent.DefaultEventExecutorGroup;
+import io.netty.util.concurrent.DefaultThreadFactory;
 import io.netty.util.concurrent.EventExecutorGroup;
 
 /**
@@ -19,7 +20,7 @@ public class HrpcServerConfig  {
     private  EventLoopGroup work=null;
 
     public HrpcServerConfig(){
-        this.eventExecutors=new DefaultEventExecutorGroup(Runtime.getRuntime().availableProcessors());
+        this.eventExecutors=new DefaultEventExecutorGroup(Runtime.getRuntime().availableProcessors(),new DefaultThreadFactory("netty.server.executor"));
         this.boss=new NioEventLoopGroup(1);
         this.work=new NioEventLoopGroup(2);
     }

@@ -1,6 +1,6 @@
 package com.pairs.arch.rpc.remote.model;
 
-import com.pairs.arch.rpc.common.constant.TransportConstant;
+import com.pairs.arch.rpc.common.protocol.HrpcProtocol;
 
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -43,7 +43,7 @@ public class RemotingTransporter extends ByteHolder {
     public static RemotingTransporter createRequestTransprot(byte code,CommonCustomBody customHeader){
         RemotingTransporter remotingTransporter=new RemotingTransporter();
         remotingTransporter.setCode(code);
-        remotingTransporter.setTransporterType(TransportConstant.REQUEST_REMOTING);
+        remotingTransporter.setTransporterType(HrpcProtocol.REQUEST_REMOTING);
         remotingTransporter.setCustomHeader(customHeader);
         return remotingTransporter;
     }
@@ -51,7 +51,7 @@ public class RemotingTransporter extends ByteHolder {
     public static RemotingTransporter createResponseTransport(byte code,CommonCustomBody customHeader){
         RemotingTransporter remotingTransporter=new RemotingTransporter();
         remotingTransporter.setCode(code);
-        remotingTransporter.setTransporterType(TransportConstant.RESPONSE_REMOTING);
+        remotingTransporter.setTransporterType(HrpcProtocol.RESPONSE_REMOTING);
         remotingTransporter.setCustomHeader(customHeader);
         return remotingTransporter;
     }

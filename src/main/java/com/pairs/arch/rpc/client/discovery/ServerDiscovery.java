@@ -31,6 +31,9 @@ import io.netty.handler.logging.LoggingHandler;
 import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.util.HashedWheelTimer;
 import io.netty.util.Timeout;
+import io.netty.util.concurrent.DefaultEventExecutorGroup;
+import io.netty.util.concurrent.DefaultThreadFactory;
+import io.netty.util.concurrent.EventExecutorGroup;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
@@ -208,6 +211,7 @@ public class ServerDiscovery implements InitializingBean {
      * @param address
      */
     private void createConnect(final String address) {
+        final EventExecutorGroup eq=new DefaultEventExecutorGroup(1,new DefaultThreadFactory("client.execustor"));
         String host=address.split(":")[0];
         Integer port=Integer.valueOf(address.split(":")[1]);
         Bootstrap bootstrap = new Bootstrap();
@@ -234,7 +238,7 @@ public class ServerDiscovery implements InitializingBean {
             protected void initChannel(Channel channel) throws Exception {
                 for (int i = 0; i < connectWatchDog.handler().length; i++) {
                     ChannelHandler channelHandler = connectWatchDog.handler()[i];
-                    channel.pipeline().addLast(channelHandler);
+                    channel.pipeline().addLast(eq,channelHandler);
                 }
             }
         });

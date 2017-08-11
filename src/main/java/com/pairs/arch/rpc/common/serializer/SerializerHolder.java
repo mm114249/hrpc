@@ -10,7 +10,7 @@ import com.pairs.arch.rpc.common.spi.BaseServerLoader;
  * <p>
  * Description :[]
  * </p >
- * Company:武汉灵达科技有限公司
+ * Company:
  *
  * @author [hupeng]
  * @version 1.0

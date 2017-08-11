@@ -66,4 +66,54 @@ public class HrpcProtocol {
     public static final byte COMPRESS = 80;
 
     public static final byte UNCOMPRESS = 81;
+
+
+
+
+    private byte type;//消息类型 即RemotingTransporter.transporterType
+    private byte sign;//消息标志位 即RemotingTransporter.code
+    private long id;//消息id
+    private int bodyLength;//消息体长度
+    private byte compress;//是否压缩
+
+
+    public byte getType() {
+        return type;
+    }
+
+    public void setType(byte type) {
+        this.type = type;
+    }
+
+    public byte getSign() {
+        return sign;
+    }
+
+    public void setSign(byte sign) {
+        this.sign = sign;
+    }
+
+    public long getId() {
+        return id;
+    }
+
+    public void setId(long id) {
+        this.id = id;
+    }
+
+    public int getBodyLength() {
+        return bodyLength;
+    }
+
+    public void setBodyLength(int bodyLength) {
+        this.bodyLength = bodyLength;
+    }
+
+    public byte getCompress() {
+        return compress;
+    }
+
+    public void setCompress(byte compress) {
+        this.compress = compress;
+    }
 }

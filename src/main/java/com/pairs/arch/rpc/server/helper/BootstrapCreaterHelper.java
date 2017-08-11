@@ -46,11 +46,13 @@ public class BootstrapCreaterHelper implements InitializingBean {
                 .childHandler(new ChannelInitializer<SocketChannel>() {
                     @Override
                     public void initChannel(SocketChannel channel) throws Exception {
-                        channel.pipeline().addLast(hrpcServerConfig.getEventExecutors(),new HrpcDecoder(HrpcRequest.class));
-                        channel.pipeline().addLast(hrpcServerConfig.getEventExecutors(),new IdleStateHandler(5,5,5));
-                        channel.pipeline().addLast(hrpcServerConfig.getEventExecutors(),new IdleStatusTrigger());
-                        channel.pipeline().addLast(hrpcServerConfig.getEventExecutors(),new HrpcHandler());
-                        channel.pipeline().addLast(hrpcServerConfig.getEventExecutors(),new HrpcEncoder(HrpcResponse.class));
+                        channel.pipeline().addLast(hrpcServerConfig.getEventExecutors(),
+                                new HrpcDecoder(HrpcRequest.class)
+                                ,new IdleStateHandler(5,5,5)
+                                ,new IdleStatusTrigger()
+                                ,new HrpcHandler()
+                                ,new HrpcEncoder(HrpcResponse.class)
+                        );
                     }
                 });
 
