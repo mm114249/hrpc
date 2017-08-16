@@ -3,6 +3,8 @@ package com.pairs.arch.rpc.remote.component;
 import com.pairs.arch.rpc.common.constant.HRPConstants;
 import com.pairs.arch.rpc.common.util.Pair;
 import com.pairs.arch.rpc.remote.*;
+import com.pairs.arch.rpc.remote.codec.RemotingTransporterDecoder;
+import com.pairs.arch.rpc.remote.codec.RemotingTransporterEncoder;
 import com.pairs.arch.rpc.remote.config.NettyServerConfig;
 import com.pairs.arch.rpc.remote.idle.AcceptorIdleStateTrigger;
 import com.pairs.arch.rpc.remote.model.NettyChannelnactiveProcessor;
@@ -63,8 +65,8 @@ public class NettyRemetingServer extends NettyRemotingBase implements RemotingSe
     private final AcceptorIdleStateTrigger idleStateTrigger = new AcceptorIdleStateTrigger();
 
     private int workerNum;//io线程数量
-    private int writeBufferLowWaterMark;
     private int writeBufferHighWaterMark;
+    private int writeBufferLowWaterMark;
 
 
     public NettyRemetingServer(NettyServerConfig nettyServerConfig) {
@@ -112,8 +114,10 @@ public class NettyRemetingServer extends NettyRemotingBase implements RemotingSe
                 .childOption(ChannelOption.ALLOW_HALF_CLOSURE, false);
 
         //设置服务器端写的水位
-        WriteBufferWaterMark mark=new WriteBufferWaterMark(writeBufferLowWaterMark,writeBufferHighWaterMark);
-        bootstrapServer.childOption(ChannelOption.WRITE_BUFFER_WATER_MARK, mark);
+        if(writeBufferHighWaterMark>0&&writeBufferLowWaterMark>0){
+            WriteBufferWaterMark mark=new WriteBufferWaterMark(writeBufferLowWaterMark,writeBufferHighWaterMark);
+            bootstrapServer.childOption(ChannelOption.WRITE_BUFFER_WATER_MARK, mark);
+        }
 
 
     }
@@ -135,6 +139,8 @@ public class NettyRemetingServer extends NettyRemotingBase implements RemotingSe
             @Override
             protected void initChannel(Channel channel) throws Exception {
                 channel.pipeline().addLast(eventExecutorGroup,
+                        new RemotingTransporterDecoder(),
+                        new RemotingTransporterEncoder(),
                         new IdleStateHandler(HRPConstants.READER_IDLE_TIME_SECONDS,0,0),
                         idleStateTrigger,
                         new ServerHandler()

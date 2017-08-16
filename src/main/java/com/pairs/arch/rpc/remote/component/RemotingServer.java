@@ -22,7 +22,12 @@ import java.util.concurrent.ExecutorService;
  * @version 1.0
  **/
 public interface RemotingServer extends BaseRemotingService {
-    /**注册请求处理器*/
+    /**
+     * 注册请求处理器
+     * @param code RemotingTransporter.code
+     * @param processor
+     * @param executorService
+     */
     void registerProcessor(final byte code, final NettyRequestProcessor processor, final ExecutorService executorService);
     /**注册通过关闭处理器*/
     void registerChannelInactiveProcessor(final NettyChannelnactiveProcessor processor,final ExecutorService executorService);

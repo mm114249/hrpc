@@ -22,10 +22,10 @@ public class HrpcProtocol {
     public static final short MAGIC = (short) 0xbabe;
 
     /** 发送的是请求信息*/
-    public static final byte REQUEST_REMOTING = 1;
+    public static final byte REQUEST_REMOTING = 1;//RemotingTransporter.code
 
     /** 发送的是响应信息*/
-    public static final byte RESPONSE_REMOTING = 2;
+    public static final byte RESPONSE_REMOTING = 2;//RemotingTransporter.code
 
 
     public static final byte RPC_REMOTING = 3;
@@ -34,9 +34,11 @@ public class HrpcProtocol {
 
     public static final byte HANDLER_BUSY = -2;
 
-    //provider端向registry发送注册信息的code
+
+    /******RemotingTransporter.code 不同的处理也用该值来注册*****/
+    //provider端向registry  注册信息
     public static final byte PUBLISH_SERVICE = 65;
-    //consumer端向registry订阅服务后返回的订阅结果
+    //consumer端向registry订阅服务
     public static final byte SUBCRIBE_RESULT = 66;
     //订阅服务取消
     public static final byte SUBCRIBE_SERVICE_CANCEL = 67;
@@ -62,6 +64,8 @@ public class HrpcProtocol {
     public static final byte HEARTBEAT = 127;
     //ACK
     public static final byte ACK = 126;
+    /******RemotingTransporter.code*****/
+
 
     public static final byte COMPRESS = 80;
 

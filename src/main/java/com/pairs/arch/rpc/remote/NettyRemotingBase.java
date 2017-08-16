@@ -82,8 +82,10 @@ public abstract class NettyRemotingBase {
             if(remotingResponse==null){
                 if(remotingResponse.isSendRequestOK()){
                     // TODO: 2017/8/9 请求超时
+                    logger.error("请求超时");
                 }else{
                     // TODO: 2017/8/9 远程请求失败
+                    logger.error("请求远程地址失败");
                 }
             }
             return remotingTransporter;
@@ -153,7 +155,7 @@ public abstract class NettyRemotingBase {
         try{
             pair.getValue().submit(run);
         }catch (Exception e){
-            logger.error("server is busy,[{}]",e.getMessage());
+            logger.error("server is busy,[{}]",e);
             RemotingTransporter instance = RemotingTransporter.newInstance(remotingTransporter.getOpaque(), HrpcProtocol.HANDLER_BUSY, HrpcProtocol.RESPONSE_REMOTING, null);
             ctx.channel().writeAndFlush(instance);
         }
@@ -164,12 +166,33 @@ public abstract class NettyRemotingBase {
      * @param ctx
      * @param remotingTransporter
      */
-    protected void processRemotingResponse(ChannelHandlerContext ctx,RemotingTransporter remotingTransporter){
-        RemotingResponse remotingResponse = responseTable.get(remotingTransporter.getOpaque());
+    protected void processRemotingResponse(final ChannelHandlerContext ctx,final RemotingTransporter remotingTransporter){
+        final RemotingResponse remotingResponse = responseTable.get(remotingTransporter.getOpaque());
         if(remotingResponse!=null){
-            remotingResponse.putResponse(remotingTransporter);
-            //从篮子中把这次请求删除
-            responseTable.remove(remotingTransporter.getOpaque());
+            final Pair<NettyRequestProcessor, ExecutorService> pair = processorTable.get(remotingTransporter.getCode());
+            if(pair!=null){
+                Runnable run=new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            pair.getKey().processRequest(ctx,remotingTransporter);
+                            remotingResponse.putResponse(remotingTransporter);
+                        } catch (Exception e) {
+                            logger.error("",e);
+                        }
+                    }
+                };
+
+                try{
+                    pair.getValue().submit(run);
+                }catch (Exception e){
+                    logger.error("client process is busy");
+                }finally {
+                    //从篮子中把这次请求删除
+                    responseTable.remove(remotingTransporter.getOpaque());
+                }
+
+            }
         }else{
             logger.warn("received response but matched Id is removed from responseTable maybe timeout");
         }

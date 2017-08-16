@@ -25,12 +25,15 @@ import java.util.List;
  * @author [hupeng]
  * @version 1.0
  **/
-@ChannelHandler.Sharable
 public class RemotingTransporterDecoder extends ReplayingDecoder<RemotingTransporterDecoder.State> {
     private static Logger logger = LoggerFactory.getLogger(RemotingTransporterDecoder.class);
 
     private final HrpcProtocol header = new HrpcProtocol();
     private static final int MAX_BODY_SIZE=1024;//一条消息最大长度
+
+    public RemotingTransporterDecoder(){
+        checkpoint(State.HEADER_MAGIC);
+    }
 
     @Override
     protected void decode(ChannelHandlerContext ctx, ByteBuf byteBuf, List<Object> list) throws Exception {
@@ -57,7 +60,7 @@ public class RemotingTransporterDecoder extends ReplayingDecoder<RemotingTranspo
             case BODY:
                 checkBodyLength(header.getBodyLength());
                 byte[] bodys=new byte[header.getBodyLength()];
-                byteBuf.writeBytes(bodys);
+                byteBuf.readBytes(bodys);
                 //解压
                 if(header.getCompress()==HrpcProtocol.COMPRESS){
                     bodys= Snappy.uncompress(bodys);

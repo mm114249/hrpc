@@ -18,11 +18,12 @@ import java.util.concurrent.atomic.AtomicLong;
  * @version 1.0
  **/
 public class RemotingTransporter extends ByteHolder {
-    private static final AtomicLong requestId = new AtomicLong(0l);
+    private static final AtomicLong requestId = new AtomicLong(1l);
+
     /**
-     *  1订阅服务2发布服务
+     *业务代码,processor 根据该编码来使用不同的处理器来处理
      */
-    private byte code;
+    private byte code;// 取HrpcProtocol中的常量
     /**
      * 消息请求主体
      */

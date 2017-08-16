@@ -19,4 +19,8 @@ public class HRPConstants {
     public static final int AVAILABLE_PROCESSORS = Runtime.getRuntime().availableProcessors();
     /**********读心跳的默认时间间隔****************/
     public static final int READER_IDLE_TIME_SECONDS = 60;
+    /**********客户端发送心跳消息的时间****************/
+    public static final int WRITE_IDLE_TIME_SECONDS=10;
+
+
 }
