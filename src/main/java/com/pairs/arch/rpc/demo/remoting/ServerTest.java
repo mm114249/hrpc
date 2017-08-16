@@ -18,7 +18,7 @@ import io.netty.channel.ChannelHandlerContext;
  * <p>
  * Description :[]
  * </p >
- * Company:武汉灵达科技有限公司
+ * Company:
  *
  * @author [hupeng]
  * @version 1.0
