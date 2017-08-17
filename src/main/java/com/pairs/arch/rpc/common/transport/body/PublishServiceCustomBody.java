@@ -3,20 +3,20 @@ package com.pairs.arch.rpc.common.transport.body;
 import com.pairs.arch.rpc.remote.model.CommonCustomBody;
 
 /**
- * Created on 2017年08月15日16:28
+ * Created on 2017年08月17日15:13
  * <p>
  * Title:[]
  * </p >
  * <p>
- * Description :[服务注册]
+ * Description :[provider 提供向注册中心注册服务的网络传输对象]
  * </p >
  * Company:
  *
  * @author [hupeng]
  * @version 1.0
  **/
-@Deprecated
-public class RegisterServiceCustomBody implements CommonCustomBody {
+public class PublishServiceCustomBody implements CommonCustomBody {
+
     private String host;//主机地址
     private int prot;//端口号
     private String serviceProviderName;//服务名
@@ -25,7 +25,7 @@ public class RegisterServiceCustomBody implements CommonCustomBody {
     private String degradeServicePath;//降级后的mock服务的地址
     private String degradeServiceDesc;//mock服务降级
     private int weight;//服务权重
-    private int connectCount;//总连接次数
+    private int connectCount;//建议连接数
     private long maxCallCountInMinute;//单位时间内最大的连接次数
     private boolean isFlowController;//是否限流
 
