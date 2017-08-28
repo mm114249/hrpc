@@ -49,9 +49,10 @@ public class RemotingTransporter extends ByteHolder {
         return remotingTransporter;
     }
 
-    public static RemotingTransporter createResponseTransport(byte code,CommonCustomBody customHeader){
+    public static RemotingTransporter createResponseTransport(byte code,CommonCustomBody customHeader,long opaque){
         RemotingTransporter remotingTransporter=new RemotingTransporter();
         remotingTransporter.setCode(code);
+        remotingTransporter.setOpaque(opaque);
         remotingTransporter.setTransporterType(HrpcProtocol.RESPONSE_REMOTING);
         remotingTransporter.setCustomHeader(customHeader);
         return remotingTransporter;

@@ -1,4 +1,4 @@
-package com.pairs.arch.rpc.common.rpc;
+package com.pairs.arch.rpc.common.rpc.registry;
 
 import com.pairs.arch.rpc.common.transport.body.PublishServiceCustomBody;
 import io.netty.channel.Channel;
@@ -140,6 +140,13 @@ public class RegisterMeta {
         this.connCount = connCount;
     }
 
+    public ServiceReviewState getIsReviewed() {
+        return isReviewed;
+    }
+
+    public void setIsReviewed(ServiceReviewState isReviewed) {
+        this.isReviewed = isReviewed;
+    }
 
     @Override
     public boolean equals(Object obj) {

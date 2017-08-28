@@ -21,8 +21,11 @@ public class NettyServerConfig {
     private int listenPort=7080;
     /**io线程数量*/
     private int serverWorkerThreads= HRPConstants.AVAILABLE_PROCESSORS;
+    /**channel销毁线程*/
+    private int channelInactiveHandlerThreads = 1;
     /**默认的低水位*/
     private int writeBufferLowWaterMark = -1;
+
     /**默认的高水位*/
     private int writeBufferHighWaterMark = -1;
 
@@ -59,5 +62,13 @@ public class NettyServerConfig {
 
     public void setListenPort(int listenPort) {
         this.listenPort = listenPort;
+    }
+
+    public int getChannelInactiveHandlerThreads() {
+        return channelInactiveHandlerThreads;
+    }
+
+    public void setChannelInactiveHandlerThreads(int channelInactiveHandlerThreads) {
+        this.channelInactiveHandlerThreads = channelInactiveHandlerThreads;
     }
 }

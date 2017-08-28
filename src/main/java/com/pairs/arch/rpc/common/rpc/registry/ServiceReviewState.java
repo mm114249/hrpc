@@ -1,4 +1,4 @@
-package com.pairs.arch.rpc.common.rpc;
+package com.pairs.arch.rpc.common.rpc.registry;
 
 /**
  * 

@@ -34,7 +34,7 @@ public class ServerTest {
                 RegisterServiceCustomBody customBody = SerializerHolder.serializerImpl().readObject(request.bytes(), RegisterServiceCustomBody.class);
                 System.out.println(customBody.getServiceProviderName());
                 ACKCustomBody body=new ACKCustomBody(request.getOpaque(),true,"aabb");
-                RemotingTransporter responseTransport = RemotingTransporter.createResponseTransport(HrpcProtocol.ACK, body);
+                RemotingTransporter responseTransport = RemotingTransporter.createResponseTransport(HrpcProtocol.ACK, body,request.getOpaque());
                 responseTransport.setOpaque(request.getOpaque());
                 return responseTransport;
             }
