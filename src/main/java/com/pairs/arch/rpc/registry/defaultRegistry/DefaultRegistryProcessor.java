@@ -36,9 +36,15 @@ public class DefaultRegistryProcessor implements NettyRequestProcessor {
         }
 
         switch (request.getCode()){
-            case HrpcProtocol.PUBLISH_SERVICE:
+            case HrpcProtocol.PUBLISH_SERVICE://处理服务注册
                 defaultRegistryServer.getRegistryProviderManager().handlerRegister(request,ctx.channel());
                 break;
+            case  HrpcProtocol.PUBLISH_CANCEL_SERVICE: //处理provider服务取消
+                return this.defaultRegistryServer.getRegistryProviderManager().handlerRegisterCancel(request, ctx.channel());
+            case HrpcProtocol.SUBSCRIBE_SERVICE: //处理服务消费者订阅服务的请求
+                return this.defaultRegistryServer.getRegistryProviderManager().handleSubscribe(request, ctx.channel());
+            case HrpcProtocol.MANAGER_SERVICE: // 处理管理者发送过来的服务管理服务
+                return this.defaultRegistryServer.getRegistryProviderManager().handleManager(request, ctx.channel());
         }
 
 

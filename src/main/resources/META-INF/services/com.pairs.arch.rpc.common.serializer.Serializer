@@ -1,1 +1,1 @@
-com.pairs.arch.rpc.common.serializer.json.FastJsonSerializer
+com.pairs.arch.rpc.common.serializer.protostuff.ProtoStuffSerializer

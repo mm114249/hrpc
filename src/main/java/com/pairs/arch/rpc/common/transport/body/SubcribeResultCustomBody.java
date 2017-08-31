@@ -13,7 +13,7 @@ import java.util.List;
  * Title:[]
  * </p >
  * <p/>
- * Description :[]
+ * Description :[消费者消息订阅返回对象]
  * </p >
  * Company:武汉灵达科技有限公司
  *

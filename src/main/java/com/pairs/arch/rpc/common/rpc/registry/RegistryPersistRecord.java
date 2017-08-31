@@ -10,7 +10,7 @@ import java.util.List;
 public class RegistryPersistRecord {
 	
 	private String serviceName;
-	
+	//负载均衡策略
 	private LoadBalanceStrategy balanceStrategy;
 	
 	private List<PersistProviderInfo> providerInfos = new ArrayList<PersistProviderInfo>();
